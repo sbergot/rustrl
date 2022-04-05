@@ -21,6 +21,9 @@ pub struct LeftMover {}
 #[derive(Component, Debug)]
 pub struct Player {}
 
+#[derive(Component, Debug)]
+pub struct Monster {}
+
 #[derive(Component)]
 pub struct Viewshed {
     pub visible_tiles: Vec<Point>,
@@ -36,4 +39,9 @@ impl Viewshed {
             range,
         }
     }
+}
+
+#[derive(Component, Debug)]
+pub struct Name {
+    pub name : String
 }

@@ -4,6 +4,7 @@ mod map;
 mod player;
 mod state;
 mod visibility_system;
+mod monster_ai_system;
 
 use bracket_lib::prelude::{main_loop, BError, BTermBuilder};
 

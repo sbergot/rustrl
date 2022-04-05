@@ -4,17 +4,31 @@ use specs::prelude::*;
 use crate::components::*;
 use crate::map;
 use crate::map::Map;
+use crate::monster_ai_system::MonsterAI;
 use crate::player;
 use crate::visibility_system::VisibilitySystem;
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum RunState {
+    Paused,
+    Running,
+}
+
+pub struct PlayerPos {
+    pub pos: Point,
+}
+
 pub struct State {
     pub ecs: World,
+    pub runstate: RunState,
 }
 
 impl State {
     fn run_systems(&mut self) {
         let mut vis = VisibilitySystem {};
         vis.run_now(&self.ecs);
+        let mut monster_ai = MonsterAI {};
+        monster_ai.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -23,9 +37,12 @@ impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
         ctx.cls();
 
-        self.run_systems();
-
-        player::player_input(self, ctx);
+        if self.runstate == RunState::Running {
+            self.run_systems();
+            self.runstate = RunState::Paused;
+        } else {
+            self.runstate = player::player_input(self, ctx);
+        }
 
         Map::draw_map(&self.ecs, ctx);
 
@@ -43,12 +60,17 @@ impl GameState for State {
 }
 
 pub fn init_state(width: i32, height: i32) -> State {
-    let mut gs = State { ecs: World::new() };
+    let mut gs = State {
+        ecs: World::new(),
+        runstate: RunState::Running,
+    };
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
     gs.ecs.register::<Viewshed>();
+    gs.ecs.register::<Monster>();
+    gs.ecs.register::<Name>();
 
     let (rooms, map) = map::Map::new_map_rooms_and_corridors(width, height);
     gs.ecs.insert(map);
@@ -68,16 +90,26 @@ pub fn init_state(width: i32, height: i32) -> State {
         })
         .with(Player {})
         .with(Viewshed::new(8))
+        .with(Name{name: "Player".to_string()})
         .build();
 
+    gs.ecs.insert(PlayerPos { pos: room_center });
+
     let mut rng = RandomNumberGenerator::new();
-    for room in rooms.iter().skip(1) {
+    for (i, room) in rooms.iter().skip(1).enumerate() {
         let Point { x, y } = room.center();
         let glyph: FontCharType;
+        let name: String;
         let roll = rng.roll_dice(1, 2);
         match roll {
-            1 => glyph = to_cp437('g'),
-            _ => glyph = to_cp437('o'),
+            1 => {
+                glyph = to_cp437('g');
+                name = "Goblin".to_string();
+            }
+            _ => {
+                glyph = to_cp437('o');
+                name = "Orc".to_string();
+            }
         }
 
         gs.ecs
@@ -88,10 +120,10 @@ pub fn init_state(width: i32, height: i32) -> State {
                 fg: RGB::named(RED),
                 bg: RGB::named(BLACK),
             })
-            .with(Viewshed {
-                visible_tiles: Vec::new(),
-                range: 8,
-                dirty: true,
+            .with(Viewshed::new(8))
+            .with(Monster {})
+            .with(Name {
+                name: format!("{} #{}", &name, i),
             })
             .build();
     }

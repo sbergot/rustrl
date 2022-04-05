@@ -1,6 +1,6 @@
 use crate::components::{Player, Position, Viewshed};
 use crate::map::{Map, TileType};
-use crate::state::State;
+use crate::state::{PlayerPos, RunState, State};
 
 use bracket_lib::prelude::*;
 use specs::prelude::*;
@@ -17,14 +17,19 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         if map.tiles[destination_idx] != TileType::Wall {
             pos.x = min(map.width - 1, max(0, pos.x + delta_x));
             pos.y = min(map.height - 1, max(0, pos.y + delta_y));
+
+            let mut ppos = ecs.write_resource::<PlayerPos>();
+            ppos.pos.x = pos.x;
+            ppos.pos.y = pos.y;
+
             viewshed.dirty = true;
         }
     }
 }
 
-pub fn player_input(gs: &mut State, ctx: &mut BTerm) {
+pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
     match ctx.key {
-        None => {} // Nothing happened
+        None => return RunState::Paused, // Nothing happened
         Some(key) => match key {
             VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::H => {
                 try_move_player(-1, 0, &mut gs.ecs)
@@ -49,7 +54,8 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) {
             VirtualKeyCode::B => try_move_player(-1, 1, &mut gs.ecs),
 
             VirtualKeyCode::N => try_move_player(1, 1, &mut gs.ecs),
-            _ => {}
+            _ => return RunState::Paused,
         },
     }
+    RunState::Running
 }
