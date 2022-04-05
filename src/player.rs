@@ -1,10 +1,10 @@
-use crate::components::{Position, Player, Viewshed};
-use crate::map::{TileType, Map};
+use crate::components::{Player, Position, Viewshed};
+use crate::map::{Map, TileType};
 use crate::state::State;
 
-use std::cmp::{min, max};
-use specs::prelude::*;
 use bracket_lib::prelude::*;
+use specs::prelude::*;
+use std::cmp::{max, min};
 
 fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
@@ -26,21 +26,21 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) {
     match ctx.key {
         None => {} // Nothing happened
         Some(key) => match key {
-            VirtualKeyCode::Left |
-            VirtualKeyCode::Numpad4 |
-            VirtualKeyCode::H => try_move_player(-1, 0, &mut gs.ecs),
+            VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::H => {
+                try_move_player(-1, 0, &mut gs.ecs)
+            }
 
-            VirtualKeyCode::Right |
-            VirtualKeyCode::Numpad6 |
-            VirtualKeyCode::L => try_move_player(1, 0, &mut gs.ecs),
+            VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::L => {
+                try_move_player(1, 0, &mut gs.ecs)
+            }
 
-            VirtualKeyCode::Up |
-            VirtualKeyCode::Numpad8 |
-            VirtualKeyCode::K => try_move_player(0, -1, &mut gs.ecs),
+            VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::K => {
+                try_move_player(0, -1, &mut gs.ecs)
+            }
 
-            VirtualKeyCode::Down |
-            VirtualKeyCode::Numpad2 |
-            VirtualKeyCode::J => try_move_player(0, 1, &mut gs.ecs),
+            VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::J => {
+                try_move_player(0, 1, &mut gs.ecs)
+            }
 
             VirtualKeyCode::T => try_move_player(-1, -1, &mut gs.ecs),
 

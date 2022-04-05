@@ -70,14 +70,14 @@ pub fn init_state(width: i32, height: i32) -> State {
         .with(Viewshed::new(8))
         .build();
 
-        let mut rng = RandomNumberGenerator::new();
+    let mut rng = RandomNumberGenerator::new();
     for room in rooms.iter().skip(1) {
         let Point { x, y } = room.center();
-        let glyph : FontCharType;
+        let glyph: FontCharType;
         let roll = rng.roll_dice(1, 2);
         match roll {
-            1 => { glyph = to_cp437('g') }
-            _ => { glyph = to_cp437('o') }
+            1 => glyph = to_cp437('g'),
+            _ => glyph = to_cp437('o'),
         }
 
         gs.ecs
