@@ -2,25 +2,30 @@ use bracket_lib::prelude::*;
 use specs::prelude::*;
 
 use crate::components::*;
+use crate::damage_system;
+use crate::damage_system::DamageSystem;
+use crate::gamelog::GameLog;
+use crate::gui;
 use crate::map;
 use crate::map::Map;
+use crate::map_indexing_system::MapIndexingSystem;
+use crate::melee_combat_system::MeleeCombatSystem;
 use crate::monster_ai_system::MonsterAI;
 use crate::player;
+use crate::player::PlayerEntity;
+use crate::player::PlayerPos;
 use crate::visibility_system::VisibilitySystem;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState {
-    Paused,
-    Running,
-}
-
-pub struct PlayerPos {
-    pub pos: Point,
+    AwaitingInput,
+    PreRun,
+    PlayerTurn,
+    MonsterTurn,
 }
 
 pub struct State {
     pub ecs: World,
-    pub runstate: RunState,
 }
 
 impl State {
@@ -29,6 +34,15 @@ impl State {
         vis.run_now(&self.ecs);
         let mut monster_ai = MonsterAI {};
         monster_ai.run_now(&self.ecs);
+        let mut mapindex = MapIndexingSystem {};
+        mapindex.run_now(&self.ecs);
+        let mut melee_combat = MeleeCombatSystem {};
+        melee_combat.run_now(&self.ecs);
+        let mut damage = DamageSystem {};
+        damage.run_now(&self.ecs);
+
+        damage_system::delete_the_dead(&mut self.ecs);
+
         self.ecs.maintain();
     }
 }
@@ -37,11 +51,33 @@ impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
         ctx.cls();
 
-        if self.runstate == RunState::Running {
-            self.run_systems();
-            self.runstate = RunState::Paused;
-        } else {
-            self.runstate = player::player_input(self, ctx);
+        let mut newrunstate;
+        {
+            let runstate = self.ecs.fetch::<RunState>();
+            newrunstate = *runstate;
+        }
+
+        match newrunstate {
+            RunState::PreRun => {
+                self.run_systems();
+                newrunstate = RunState::AwaitingInput;
+            }
+            RunState::AwaitingInput => {
+                newrunstate = player::player_input(self, ctx);
+            }
+            RunState::PlayerTurn => {
+                self.run_systems();
+                newrunstate = RunState::MonsterTurn;
+            }
+            RunState::MonsterTurn => {
+                self.run_systems();
+                newrunstate = RunState::AwaitingInput;
+            }
+        }
+
+        {
+            let mut runwriter = self.ecs.write_resource::<RunState>();
+            *runwriter = newrunstate;
         }
 
         Map::draw_map(&self.ecs, ctx);
@@ -56,13 +92,14 @@ impl GameState for State {
                 ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph)
             }
         }
+
+        gui::draw_ui(&self.ecs, ctx);
     }
 }
 
 pub fn init_state(width: i32, height: i32) -> State {
     let mut gs = State {
         ecs: World::new(),
-        runstate: RunState::Running,
     };
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
@@ -71,13 +108,20 @@ pub fn init_state(width: i32, height: i32) -> State {
     gs.ecs.register::<Viewshed>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
+    gs.ecs.register::<BlocksTile>();
+    gs.ecs.register::<CombatStats>();
+    gs.ecs.register::<WantsToMelee>();
+    gs.ecs.register::<SufferDamage>();
 
     let (rooms, map) = map::Map::new_map_rooms_and_corridors(width, height);
     gs.ecs.insert(map);
+    gs.ecs.insert(RunState::PreRun);
+    gs.ecs.insert(GameLog { entries: vec!["Welcome to Rusty Roguelike".to_string()] });
 
     let room_center = rooms[0].center();
 
-    gs.ecs
+    let player_entity = gs
+        .ecs
         .create_entity()
         .with(Position {
             x: room_center.x,
@@ -90,8 +134,20 @@ pub fn init_state(width: i32, height: i32) -> State {
         })
         .with(Player {})
         .with(Viewshed::new(8))
-        .with(Name{name: "Player".to_string()})
+        .with(Name {
+            name: "Player".to_string(),
+        })
+        .with(CombatStats {
+            max_hp: 30,
+            hp: 30,
+            defense: 2,
+            power: 5,
+        })
         .build();
+
+    gs.ecs.insert(PlayerEntity {
+        entity: player_entity,
+    });
 
     gs.ecs.insert(PlayerPos { pos: room_center });
 
@@ -124,6 +180,13 @@ pub fn init_state(width: i32, height: i32) -> State {
             .with(Monster {})
             .with(Name {
                 name: format!("{} #{}", &name, i),
+            })
+            .with(BlocksTile {})
+            .with(CombatStats {
+                max_hp: 16,
+                hp: 16,
+                defense: 1,
+                power: 4,
             })
             .build();
     }

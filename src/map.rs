@@ -12,6 +12,8 @@ pub struct Map {
     pub tiles: Vec<TileType>,
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
+    pub blocked_tiles : Vec<bool>,
+    pub entities_tiles : Vec<Vec<Entity>>,
     pub rooms: Vec<Rect>,
     pub width: i32,
     pub height: i32,
@@ -21,6 +23,33 @@ pub struct Map {
 impl BaseMap for Map {
     fn is_opaque(&self, idx: usize) -> bool {
         self.tiles[idx] == TileType::Wall
+    }
+
+    fn get_available_exits(&self, idx:usize) -> SmallVec<[(usize, f32); 10]> {
+        let mut exits = SmallVec::new();
+        let x = idx as i32 % self.width;
+        let y = idx as i32 / self.width;
+        let w = self.width as usize;
+    
+        // Cardinal directions
+        if self.is_exit_valid(x-1, y) { exits.push((idx-1, 1.0)) };
+        if self.is_exit_valid(x+1, y) { exits.push((idx+1, 1.0)) };
+        if self.is_exit_valid(x, y-1) { exits.push((idx-w, 1.0)) };
+        if self.is_exit_valid(x, y+1) { exits.push((idx+w, 1.0)) };
+
+        if self.is_exit_valid(x-1, y-1) { exits.push(((idx-w)-1, 1.45)); }
+        if self.is_exit_valid(x+1, y-1) { exits.push(((idx-w)+1, 1.45)); }
+        if self.is_exit_valid(x-1, y+1) { exits.push(((idx+w)-1, 1.45)); }
+        if self.is_exit_valid(x+1, y+1) { exits.push(((idx+w)+1, 1.45)); }
+    
+        exits
+    }
+
+    fn get_pathing_distance(&self, idx1:usize, idx2:usize) -> f32 {
+        let w = self.width as usize;
+        let p1 = Point::new(idx1 % w, idx1 / w);
+        let p2 = Point::new(idx2 % w, idx2 / w);
+        DistanceAlg::Pythagoras.distance2d(p1, p2)
     }
 }
 
@@ -35,12 +64,28 @@ impl Map {
         ((y * self.width) + x) as usize
     }
 
+    fn is_exit_valid(&self, x: i32, y: i32) -> bool {
+        if x < 1 || x > self.width - 1 || y < 1 || y > self.height - 1 {
+            return false;
+        }
+        let idx = self.xy_idx(x, y);
+        !self.blocked_tiles[idx as usize]
+    }
+
+    pub fn clear_content_index(&mut self) {
+        for content in self.entities_tiles.iter_mut() {
+            content.clear();
+        }
+    }
+
     pub fn new_map_rooms_and_corridors(width: i32, height: i32) -> (Vec<Rect>, Map) {
         let max_idx = (width * height) as usize;
         let mut map = Map {
             tiles: vec![TileType::Wall; max_idx],
             revealed_tiles: vec![false; max_idx],
             visible_tiles: vec![false; max_idx],
+            blocked_tiles: vec![false; max_idx],
+            entities_tiles: vec![Vec::new(); max_idx],
             rooms: Vec::new(),
             width: width,
             height: height,
@@ -114,6 +159,12 @@ impl Map {
             if idx > 0 && idx < self.max_idx {
                 self.tiles[idx as usize] = TileType::Floor;
             }
+        }
+    }
+
+    pub fn populate_blocked(&mut self) {
+        for (i,tile) in self.tiles.iter_mut().enumerate() {
+            self.blocked_tiles[i] = *tile == TileType::Wall;
         }
     }
 

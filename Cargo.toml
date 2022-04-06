@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 bracket-lib = "0.8"
-specs = "0.17"
+specs = { version = "0.17", features = ["serde"] }
 specs-derive = "0.4"
+serde = { version = "1.0.136", features = ["derive"] }
