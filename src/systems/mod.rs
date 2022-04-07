@@ -25,7 +25,7 @@ pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> Dispatcher
         .with(MapIndexingSystem {}, "map_indexing", &["monster_ai"])
         .with(MeleeCombatSystem {}, "melee_combat", &["monster_ai"])
         .with(ItemCollectionSystem {}, "item_collection", &[])
-        .with(PotionUseSystem {}, "potion_use", &[])
+        .with(ItemUseSystem {}, "potion_use", &[])
         .with(ItemDropSystem {}, "item_drop", &[])
         .with(DamageSystem {}, "damage", &["melee_combat"])
 }
