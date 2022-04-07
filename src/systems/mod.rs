@@ -13,6 +13,9 @@ pub use melee_combat_system::*;
 mod damage_system;
 pub use damage_system::*;
 
+mod inventory_system;
+pub use inventory_system::*;
+
 use specs::{DispatcherBuilder};
 
 pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> DispatcherBuilder<'a, 'b> {
@@ -21,5 +24,8 @@ pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> Dispatcher
         .with(MonsterAI {}, "monster_ai", &["visibility"])
         .with(MapIndexingSystem {}, "map_indexing", &["monster_ai"])
         .with(MeleeCombatSystem {}, "melee_combat", &["monster_ai"])
+        .with(ItemCollectionSystem {}, "item_collection", &[])
+        .with(PotionUseSystem {}, "potion_use", &[])
+        .with(ItemDropSystem {}, "item_drop", &[])
         .with(DamageSystem {}, "damage", &["melee_combat"])
 }

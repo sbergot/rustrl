@@ -1,4 +1,5 @@
 use crate::components::*;
+use crate::gamelog::GameLog;
 use crate::map::Map;
 use crate::state::{RunState, State};
 
@@ -9,7 +10,6 @@ use std::cmp::{max, min};
 pub struct PlayerPos {
     pub pos: Point,
 }
-
 
 pub struct PlayerEntity {
     pub entity: Entity,
@@ -24,8 +24,16 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let entities = ecs.entities();
     let mut wants_to_melee = ecs.write_storage::<WantsToMelee>();
 
-    for (_player, pos, viewshed, entity) in (&mut players, &mut positions, &mut viewsheds, &entities).join() {
-        let destination_idx = map.xy_idx(pos.pos + Point { x: delta_x, y: delta_y });
+    for (_player, pos, viewshed, entity) in
+        (&mut players, &mut positions, &mut viewsheds, &entities).join()
+    {
+        let destination_idx = map.xy_idx(
+            pos.pos
+                + Point {
+                    x: delta_x,
+                    y: delta_y,
+                },
+        );
 
         for potential_target in map.entities_tiles[destination_idx].iter() {
             let target = combat_stats.get(*potential_target);
@@ -33,7 +41,14 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
                 None => {}
                 Some(_t) => {
                     // Attack it
-                    wants_to_melee.insert(entity, WantsToMelee{ target: *potential_target }).expect("Add target failed");
+                    wants_to_melee
+                        .insert(
+                            entity,
+                            WantsToMelee {
+                                target: *potential_target,
+                            },
+                        )
+                        .expect("Add target failed");
                     return; // So we don't move after attacking
                 }
             }
@@ -78,8 +93,49 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             VirtualKeyCode::B => try_move_player(-1, 1, &mut gs.ecs),
 
             VirtualKeyCode::N => try_move_player(1, 1, &mut gs.ecs),
+
+            VirtualKeyCode::G => get_item(&mut gs.ecs),
+
+            VirtualKeyCode::I => return RunState::ShowInventory,
+
+            VirtualKeyCode::D => return RunState::ShowDropItem,
+
             _ => return RunState::AwaitingInput,
         },
     }
     RunState::PlayerTurn
+}
+
+fn get_item(ecs: &mut World) {
+    let player_pos = ecs.fetch::<PlayerPos>();
+    let player_entity = ecs.fetch::<PlayerEntity>();
+    let entities = ecs.entities();
+    let items = ecs.read_storage::<Item>();
+    let positions = ecs.read_storage::<Position>();
+    let mut gamelog = ecs.fetch_mut::<GameLog>();
+
+    let mut target_item: Option<Entity> = None;
+    for (item_entity, _item, position) in (&entities, &items, &positions).join() {
+        if position.pos == player_pos.pos {
+            target_item = Some(item_entity);
+        }
+    }
+
+    match target_item {
+        None => gamelog
+            .entries
+            .push("There is nothing here to pick up.".to_string()),
+        Some(item) => {
+            let mut pickup = ecs.write_storage::<WantsToPickupItem>();
+            pickup
+                .insert(
+                    player_entity.entity,
+                    WantsToPickupItem {
+                        collected_by: player_entity.entity,
+                        item,
+                    },
+                )
+                .expect("Unable to insert want to pickup");
+        }
+    }
 }

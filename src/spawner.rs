@@ -12,6 +12,7 @@ pub fn player(ecs: &mut World, pos: Point) -> Entity {
             glyph: to_cp437('@'),
             fg: RGB::named(YELLOW),
             bg: RGB::named(BLACK),
+            render_order: 0,
         })
         .with(Player {})
         .with(Viewshed::new(8))
@@ -53,6 +54,7 @@ fn monster<S: ToString>(ecs: &mut World, pos: Point, glyph: FontCharType, name: 
             glyph,
             fg: RGB::named(RED),
             bg: RGB::named(BLACK),
+            render_order: 1,
         })
         .with(Viewshed {
             visible_tiles: Vec::new(),
@@ -148,6 +150,7 @@ fn health_potion(ecs: &mut World, pos: Point) {
             glyph: to_cp437('¡'),
             fg: RGB::named(MAGENTA),
             bg: RGB::named(BLACK),
+            render_order: 2,
         })
         .with(Name{ name : "Health Potion".to_string() })
         .with(Item{})

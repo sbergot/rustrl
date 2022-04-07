@@ -1,8 +1,8 @@
 use bracket_lib::prelude::{FontCharType, Point, RGB};
 use serde::*;
 use specs::{
-    prelude::*,
     error::NoError,
+    prelude::*,
     saveload::{ConvertSaveload, Marker},
     Entity,
 };
@@ -10,7 +10,7 @@ use specs_derive::{Component, ConvertSaveload};
 
 #[derive(Component)]
 pub struct Position {
-    pub pos: Point
+    pub pos: Point,
 }
 
 #[derive(Component)]
@@ -18,6 +18,7 @@ pub struct Renderable {
     pub glyph: FontCharType,
     pub fg: RGB,
     pub bg: RGB,
+    pub render_order : i32,
 }
 
 #[derive(Component)]
@@ -69,7 +70,7 @@ pub struct WantsToMelee {
 
 #[derive(Component, Debug)]
 pub struct SufferDamage {
-    pub amount : Vec<i32>
+    pub amount: Vec<i32>,
 }
 
 impl SufferDamage {
@@ -77,7 +78,9 @@ impl SufferDamage {
         if let Some(suffering) = store.get_mut(victim) {
             suffering.amount.push(amount);
         } else {
-            let dmg = SufferDamage { amount : vec![amount] };
+            let dmg = SufferDamage {
+                amount: vec![amount],
+            };
             store.insert(victim, dmg).expect("Unable to insert damage");
         }
     }
@@ -88,16 +91,26 @@ pub struct Item {}
 
 #[derive(Component, Debug)]
 pub struct Potion {
-    pub heal_amount : i32
+    pub heal_amount: i32,
 }
 
 #[derive(Component, Debug, Clone)]
 pub struct InBackpack {
-    pub owner : Entity
+    pub owner: Entity,
 }
 
 #[derive(Component, Debug, Clone)]
 pub struct WantsToPickupItem {
-    pub collected_by : Entity,
-    pub item : Entity
+    pub collected_by: Entity,
+    pub item: Entity,
+}
+
+#[derive(Component, Debug)]
+pub struct WantsToDrinkPotion {
+    pub potion: Entity,
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct WantsToDropItem {
+    pub item: Entity,
 }

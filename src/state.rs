@@ -1,7 +1,6 @@
 use bracket_lib::prelude::*;
 use specs::prelude::*;
 
-use crate::systems::*;
 use crate::components::*;
 use crate::gamelog::GameLog;
 use crate::gui;
@@ -11,6 +10,7 @@ use crate::player;
 use crate::player::PlayerEntity;
 use crate::player::PlayerPos;
 use crate::spawner;
+use crate::systems::*;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState {
@@ -18,6 +18,8 @@ pub enum RunState {
     PreRun,
     PlayerTurn,
     MonsterTurn,
+    ShowInventory,
+    ShowDropItem,
 }
 
 pub struct State<'a, 'b> {
@@ -36,6 +38,23 @@ impl<'a, 'b> State<'a, 'b> {
 impl GameState for State<'static, 'static> {
     fn tick(&mut self, ctx: &mut BTerm) {
         ctx.cls();
+
+        Map::draw_map(&self.ecs, ctx);
+
+        {
+            let positions = self.ecs.read_storage::<Position>();
+            let renderables = self.ecs.read_storage::<Renderable>();
+            let map = self.ecs.fetch::<Map>();
+
+            let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+            data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order) );
+            for (pos, render) in data {
+                let idx = map.xy_idx(pos.pos);
+                if map.visible_tiles[idx] {
+                    ctx.set(pos.pos.x, pos.pos.y, render.fg, render.bg, render.glyph)
+                }
+            }
+        }
 
         let mut newrunstate;
         {
@@ -59,24 +78,49 @@ impl GameState for State<'static, 'static> {
                 self.run_systems();
                 newrunstate = RunState::AwaitingInput;
             }
+            RunState::ShowInventory => {
+                let result = gui::show_inventory(self, ctx);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result.1.unwrap();
+                        let mut intent = self.ecs.write_storage::<WantsToDrinkPotion>();
+                        intent
+                            .insert(
+                                self.ecs.fetch::<PlayerEntity>().entity,
+                                WantsToDrinkPotion {
+                                    potion: item_entity,
+                                },
+                            )
+                            .expect("Unable to insert intent");
+                        newrunstate = RunState::PlayerTurn;
+                    }
+                }
+            }
+            RunState::ShowDropItem => {
+                let result = gui::drop_item_menu(self, ctx);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result.1.unwrap();
+                        let mut intent = self.ecs.write_storage::<WantsToDropItem>();
+                        intent
+                            .insert(
+                                self.ecs.fetch::<PlayerEntity>().entity,
+                                WantsToDropItem { item: item_entity },
+                            )
+                            .expect("Unable to insert intent");
+                        newrunstate = RunState::PlayerTurn;
+                    }
+                }
+            }
         }
 
         {
             let mut runwriter = self.ecs.write_resource::<RunState>();
             *runwriter = newrunstate;
-        }
-
-        Map::draw_map(&self.ecs, ctx);
-
-        let positions = self.ecs.read_storage::<Position>();
-        let renderables = self.ecs.read_storage::<Renderable>();
-        let map = self.ecs.fetch::<Map>();
-
-        for (pos, render) in (&positions, &renderables).join() {
-            let idx = map.xy_idx(pos.pos);
-            if map.visible_tiles[idx] {
-                ctx.set(pos.pos.x, pos.pos.y, render.fg, render.bg, render.glyph)
-            }
         }
 
         gui::draw_ui(&self.ecs, ctx);
@@ -92,7 +136,10 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
     world.register::<Item>();
     world.register::<Potion>();
 
-    let mut gs = State { ecs: world, dispatcher };
+    let mut gs = State {
+        ecs: world,
+        dispatcher,
+    };
 
     let (rooms, map) = map::Map::new_map_rooms_and_corridors(width, height);
     gs.ecs.insert(map);
