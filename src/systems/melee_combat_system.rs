@@ -6,7 +6,6 @@ pub struct MeleeCombatSystem {}
 
 impl<'a> System<'a> for MeleeCombatSystem {
     type SystemData = (
-        Entities<'a>,
         WriteExpect<'a, GameLog>,
         WriteStorage<'a, WantsToMelee>,
         ReadStorage<'a, Name>,
@@ -15,10 +14,10 @@ impl<'a> System<'a> for MeleeCombatSystem {
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (entities, mut log, mut wants_melee, names, combat_stats, mut inflict_damage) = data;
+        let (mut log, mut wants_melee, names, combat_stats, mut inflict_damage) = data;
 
-        for (_entity, wants_melee, name, stats) in
-            (&entities, &wants_melee, &names, &combat_stats).join()
+        for (wants_melee, name, stats) in
+            (&wants_melee, &names, &combat_stats).join()
         {
             if stats.hp > 0 {
                 let target_stats = combat_stats.get(wants_melee.target).unwrap();

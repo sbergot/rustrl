@@ -1,7 +1,7 @@
 use bracket_lib::prelude::Point;
 use specs::prelude::*;
 
-use crate::{components::*, player};
+use crate::components::*;
 use crate::gamelog::GameLog;
 use crate::player::PlayerEntity;
 
@@ -72,7 +72,14 @@ impl<'a> System<'a> for ItemUseSystem {
             mut combat_stats,
         ) = data;
 
-        for (drink, stats, consumable, player) in (&wants_drink, &mut combat_stats, consumables.maybe(), players.maybe()).join() {
+        for (drink, stats, consumable, player) in (
+            &wants_drink,
+            &mut combat_stats,
+            consumables.maybe(),
+            players.maybe(),
+        )
+            .join()
+        {
             let potion = potions.get(drink.potion);
             match potion {
                 None => {}
@@ -100,29 +107,43 @@ pub struct ItemDropSystem {}
 
 impl<'a> System<'a> for ItemDropSystem {
     #[allow(clippy::type_complexity)]
-    type SystemData = ( ReadExpect<'a, PlayerEntity>,
-                        WriteExpect<'a, GameLog>,
-                        Entities<'a>,
-                        WriteStorage<'a, WantsToDropItem>,
-                        ReadStorage<'a, Name>,
-                        WriteStorage<'a, Position>,
-                        WriteStorage<'a, InBackpack>
-                      );
+    type SystemData = (
+        ReadExpect<'a, PlayerEntity>,
+        WriteExpect<'a, GameLog>,
+        Entities<'a>,
+        WriteStorage<'a, WantsToDropItem>,
+        ReadStorage<'a, Name>,
+        WriteStorage<'a, Position>,
+        WriteStorage<'a, InBackpack>,
+    );
 
-    fn run(&mut self, data : Self::SystemData) {
-        let (player_entity, mut gamelog, entities, mut wants_drop, names, mut positions, mut backpack) = data;
+    fn run(&mut self, data: Self::SystemData) {
+        let (
+            player_entity,
+            mut gamelog,
+            entities,
+            mut wants_drop,
+            names,
+            mut positions,
+            mut backpack,
+        ) = data;
 
         for (entity, to_drop) in (&entities, &wants_drop).join() {
-            let dropped_pos : Point;
+            let dropped_pos: Point;
             {
                 let dropper_pos = positions.get(entity).unwrap();
                 dropped_pos = dropper_pos.pos;
             }
-            positions.insert(to_drop.item, Position{ pos : dropped_pos }).expect("Unable to insert position");
+            positions
+                .insert(to_drop.item, Position { pos: dropped_pos })
+                .expect("Unable to insert position");
             backpack.remove(to_drop.item);
 
             if entity == player_entity.entity {
-                gamelog.entries.push(format!("You drop the {}.", names.get(to_drop.item).unwrap().name));
+                gamelog.entries.push(format!(
+                    "You drop the {}.",
+                    names.get(to_drop.item).unwrap().name
+                ));
             }
         }
 
