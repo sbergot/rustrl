@@ -1,5 +1,4 @@
 use crate::{components::*, gamelog::GameLog};
-use bracket_lib::prelude::console;
 use specs::prelude::*;
 
 pub struct DamageSystem {}

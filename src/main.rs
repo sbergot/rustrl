@@ -3,14 +3,10 @@ mod constants;
 mod map;
 mod player;
 mod state;
-mod visibility_system;
-mod monster_ai_system;
-mod map_indexing_system;
-mod melee_combat_system;
-mod damage_system;
 mod gui;
 mod gamelog;
 mod spawner;
+mod systems;
 
 use bracket_lib::prelude::{main_loop, BError, BTermBuilder};
 use constants::*;

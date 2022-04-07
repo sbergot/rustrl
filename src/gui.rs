@@ -67,7 +67,6 @@ fn draw_tooltips(ecs: &World, ctx: &mut BTerm) {
     }
     let mut tooltip: Vec<String> = Vec::new();
     for (name, position) in (&names, &positions).join() {
-        let pos = position.pos;
         let idx = map.xy_idx(position.pos);
         if position.pos.x == mouse_pos.0 && position.pos.y == mouse_pos.1 && map.visible_tiles[idx] {
             tooltip.push(name.name.to_string());

@@ -1,21 +1,16 @@
 use bracket_lib::prelude::*;
 use specs::prelude::*;
 
+use crate::systems::*;
 use crate::components::*;
-use crate::damage_system;
-use crate::damage_system::DamageSystem;
 use crate::gamelog::GameLog;
 use crate::gui;
 use crate::map;
 use crate::map::Map;
-use crate::map_indexing_system::MapIndexingSystem;
-use crate::melee_combat_system::MeleeCombatSystem;
-use crate::monster_ai_system::MonsterAI;
 use crate::player;
 use crate::player::PlayerEntity;
 use crate::player::PlayerPos;
 use crate::spawner;
-use crate::visibility_system::VisibilitySystem;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState {
@@ -25,30 +20,20 @@ pub enum RunState {
     MonsterTurn,
 }
 
-pub struct State {
+pub struct State<'a, 'b> {
     pub ecs: World,
+    dispatcher: Dispatcher<'a, 'b>,
 }
 
-impl State {
+impl<'a, 'b> State<'a, 'b> {
     fn run_systems(&mut self) {
-        let mut vis = VisibilitySystem {};
-        vis.run_now(&self.ecs);
-        let mut monster_ai = MonsterAI {};
-        monster_ai.run_now(&self.ecs);
-        let mut mapindex = MapIndexingSystem {};
-        mapindex.run_now(&self.ecs);
-        let mut melee_combat = MeleeCombatSystem {};
-        melee_combat.run_now(&self.ecs);
-        let mut damage = DamageSystem {};
-        damage.run_now(&self.ecs);
-
-        damage_system::delete_the_dead(&mut self.ecs);
-
+        self.dispatcher.dispatch(&self.ecs);
+        delete_the_dead(&mut self.ecs);
         self.ecs.maintain();
     }
 }
 
-impl GameState for State {
+impl GameState for State<'static, 'static> {
     fn tick(&mut self, ctx: &mut BTerm) {
         ctx.cls();
 
@@ -98,10 +83,16 @@ impl GameState for State {
     }
 }
 
-pub fn init_state(width: i32, height: i32) -> State {
-    let mut gs = State { ecs: World::new() };
+pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
+    let mut world = World::new();
 
-    register_components(&mut gs.ecs);
+    let mut dispatcher = with_systems(DispatcherBuilder::new()).build();
+    dispatcher.setup(&mut world);
+    world.register::<Renderable>();
+    world.register::<Item>();
+    world.register::<Potion>();
+
+    let mut gs = State { ecs: world, dispatcher };
 
     let (rooms, map) = map::Map::new_map_rooms_and_corridors(width, height);
     gs.ecs.insert(map);

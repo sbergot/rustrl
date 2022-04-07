@@ -96,19 +96,8 @@ pub struct InBackpack {
     pub owner : Entity
 }
 
-pub fn register_components(ecs: &mut World) {
-    ecs.register::<Position>();
-    ecs.register::<Renderable>();
-    ecs.register::<LeftMover>();
-    ecs.register::<Player>();
-    ecs.register::<Viewshed>();
-    ecs.register::<Monster>();
-    ecs.register::<Name>();
-    ecs.register::<BlocksTile>();
-    ecs.register::<CombatStats>();
-    ecs.register::<WantsToMelee>();
-    ecs.register::<SufferDamage>();
-    ecs.register::<Item>();
-    ecs.register::<Potion>();
-    ecs.register::<InBackpack>();
+#[derive(Component, Debug, Clone)]
+pub struct WantsToPickupItem {
+    pub collected_by : Entity,
+    pub item : Entity
 }
