@@ -17,6 +17,7 @@ impl<'a> System<'a> for MonsterAI {
         WriteStorage<'a, Position>,
         ReadStorage<'a, Monster>,
         WriteStorage<'a, WantsToMelee>,
+        WriteStorage<'a, WantsToMove>,
         Entities<'a>,
     );
 
@@ -30,6 +31,7 @@ impl<'a> System<'a> for MonsterAI {
             mut pos,
             monster,
             mut wants_to_melee,
+            mut wants_to_move,
             entities,
         ) = data;
 
@@ -41,8 +43,7 @@ impl<'a> System<'a> for MonsterAI {
             (&mut viewshed, &mut pos, &monster, &entities).join()
         {
             if viewshed.visible_tiles.contains(&player_pos.pos) {
-                let distance =
-                    DistanceAlg::Pythagoras.distance2d(pos.pos, player_pos.pos);
+                let distance = DistanceAlg::Pythagoras.distance2d(pos.pos, player_pos.pos);
                 if distance < 1.5 {
                     wants_to_melee
                         .insert(
@@ -60,8 +61,13 @@ impl<'a> System<'a> for MonsterAI {
                     &*map,
                 );
                 if path.success && path.steps.len() > 1 {
-                    pos.pos.x = path.steps[1] as i32 % map.width;
-                    pos.pos.y = path.steps[1] as i32 / map.width;
+                    let target = Point {
+                        x: path.steps[1] as i32 % map.width,
+                        y: path.steps[1] as i32 / map.width,
+                    };
+                    wants_to_move
+                        .insert(entity, WantsToMove { target })
+                        .expect("Unable to insert move");
                     viewshed.dirty = true;
                 }
             }

@@ -100,6 +100,12 @@ pub struct InBackpack {
 }
 
 #[derive(Component, Debug, Clone)]
+pub struct WantsToMove {
+    pub target: Point,
+}
+
+
+#[derive(Component, Debug, Clone)]
 pub struct WantsToPickupItem {
     pub collected_by: Entity,
     pub item: Entity,

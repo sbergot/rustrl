@@ -23,6 +23,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let map = ecs.fetch::<Map>();
     let entities = ecs.entities();
     let mut wants_to_melee = ecs.write_storage::<WantsToMelee>();
+    let mut wants_to_move = ecs.write_storage::<WantsToMove>();
 
     for (_player, pos, viewshed, entity) in
         (&mut players, &mut positions, &mut viewsheds, &entities).join()
@@ -55,12 +56,13 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         }
 
         if !map.blocked_tiles[destination_idx] {
-            pos.pos.x = min(map.width - 1, max(0, pos.pos.x + delta_x));
-            pos.pos.y = min(map.height - 1, max(0, pos.pos.y + delta_y));
-
-            let mut ppos = ecs.write_resource::<PlayerPos>();
-            ppos.pos = pos.pos;
-
+            let target = Point {
+                x: min(map.width - 1, max(0, pos.pos.x + delta_x)),
+                y: min(map.height - 1, max(0, pos.pos.y + delta_y)),
+            };
+            wants_to_move
+                .insert(entity, WantsToMove { target })
+                .expect("Add move failed");
             viewshed.dirty = true;
         }
     }
