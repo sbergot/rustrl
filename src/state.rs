@@ -14,6 +14,7 @@ use crate::monster_ai_system::MonsterAI;
 use crate::player;
 use crate::player::PlayerEntity;
 use crate::player::PlayerPos;
+use crate::spawner;
 use crate::visibility_system::VisibilitySystem;
 
 #[derive(PartialEq, Copy, Clone)]
@@ -87,9 +88,9 @@ impl GameState for State {
         let map = self.ecs.fetch::<Map>();
 
         for (pos, render) in (&positions, &renderables).join() {
-            let idx = map.xy_idx(pos.x, pos.y);
+            let idx = map.xy_idx(pos.pos);
             if map.visible_tiles[idx] {
-                ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph)
+                ctx.set(pos.pos.x, pos.pos.y, render.fg, render.bg, render.glyph)
             }
         }
 
@@ -98,52 +99,20 @@ impl GameState for State {
 }
 
 pub fn init_state(width: i32, height: i32) -> State {
-    let mut gs = State {
-        ecs: World::new(),
-    };
-    gs.ecs.register::<Position>();
-    gs.ecs.register::<Renderable>();
-    gs.ecs.register::<LeftMover>();
-    gs.ecs.register::<Player>();
-    gs.ecs.register::<Viewshed>();
-    gs.ecs.register::<Monster>();
-    gs.ecs.register::<Name>();
-    gs.ecs.register::<BlocksTile>();
-    gs.ecs.register::<CombatStats>();
-    gs.ecs.register::<WantsToMelee>();
-    gs.ecs.register::<SufferDamage>();
+    let mut gs = State { ecs: World::new() };
+
+    register_components(&mut gs.ecs);
 
     let (rooms, map) = map::Map::new_map_rooms_and_corridors(width, height);
     gs.ecs.insert(map);
     gs.ecs.insert(RunState::PreRun);
-    gs.ecs.insert(GameLog { entries: vec!["Welcome to Rusty Roguelike".to_string()] });
+    gs.ecs.insert(GameLog {
+        entries: vec!["Welcome to Rusty Roguelike".to_string()],
+    });
+    gs.ecs.insert(RandomNumberGenerator::new());
 
     let room_center = rooms[0].center();
-
-    let player_entity = gs
-        .ecs
-        .create_entity()
-        .with(Position {
-            x: room_center.x,
-            y: room_center.y,
-        })
-        .with(Renderable {
-            glyph: to_cp437('@'),
-            fg: RGB::named(YELLOW),
-            bg: RGB::named(BLACK),
-        })
-        .with(Player {})
-        .with(Viewshed::new(8))
-        .with(Name {
-            name: "Player".to_string(),
-        })
-        .with(CombatStats {
-            max_hp: 30,
-            hp: 30,
-            defense: 2,
-            power: 5,
-        })
-        .build();
+    let player_entity = spawner::player(&mut gs.ecs, room_center);
 
     gs.ecs.insert(PlayerEntity {
         entity: player_entity,
@@ -151,44 +120,8 @@ pub fn init_state(width: i32, height: i32) -> State {
 
     gs.ecs.insert(PlayerPos { pos: room_center });
 
-    let mut rng = RandomNumberGenerator::new();
-    for (i, room) in rooms.iter().skip(1).enumerate() {
-        let Point { x, y } = room.center();
-        let glyph: FontCharType;
-        let name: String;
-        let roll = rng.roll_dice(1, 2);
-        match roll {
-            1 => {
-                glyph = to_cp437('g');
-                name = "Goblin".to_string();
-            }
-            _ => {
-                glyph = to_cp437('o');
-                name = "Orc".to_string();
-            }
-        }
-
-        gs.ecs
-            .create_entity()
-            .with(Position { x, y })
-            .with(Renderable {
-                glyph,
-                fg: RGB::named(RED),
-                bg: RGB::named(BLACK),
-            })
-            .with(Viewshed::new(8))
-            .with(Monster {})
-            .with(Name {
-                name: format!("{} #{}", &name, i),
-            })
-            .with(BlocksTile {})
-            .with(CombatStats {
-                max_hp: 16,
-                hp: 16,
-                defense: 1,
-                power: 4,
-            })
-            .build();
+    for room in rooms.iter().skip(1) {
+        spawner::spawn_room(&mut gs.ecs, room);
     }
 
     gs

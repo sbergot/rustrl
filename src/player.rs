@@ -25,7 +25,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut wants_to_melee = ecs.write_storage::<WantsToMelee>();
 
     for (_player, pos, viewshed, entity) in (&mut players, &mut positions, &mut viewsheds, &entities).join() {
-        let destination_idx = map.xy_idx(pos.x + delta_x, pos.y + delta_y);
+        let destination_idx = map.xy_idx(pos.pos + Point { x: delta_x, y: delta_y });
 
         for potential_target in map.entities_tiles[destination_idx].iter() {
             let target = combat_stats.get(*potential_target);
@@ -40,12 +40,11 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         }
 
         if !map.blocked_tiles[destination_idx] {
-            pos.x = min(map.width - 1, max(0, pos.x + delta_x));
-            pos.y = min(map.height - 1, max(0, pos.y + delta_y));
+            pos.pos.x = min(map.width - 1, max(0, pos.pos.x + delta_x));
+            pos.pos.y = min(map.height - 1, max(0, pos.pos.y + delta_y));
 
             let mut ppos = ecs.write_resource::<PlayerPos>();
-            ppos.pos.x = pos.x;
-            ppos.pos.y = pos.y;
+            ppos.pos = pos.pos;
 
             viewshed.dirty = true;
         }

@@ -42,7 +42,7 @@ impl<'a> System<'a> for MonsterAI {
         {
             if viewshed.visible_tiles.contains(&player_pos.pos) {
                 let distance =
-                    DistanceAlg::Pythagoras.distance2d(Point::new(pos.x, pos.y), player_pos.pos);
+                    DistanceAlg::Pythagoras.distance2d(pos.pos, player_pos.pos);
                 if distance < 1.5 {
                     wants_to_melee
                         .insert(
@@ -55,13 +55,13 @@ impl<'a> System<'a> for MonsterAI {
                     return;
                 }
                 let path = a_star_search(
-                    map.xy_idx(pos.x, pos.y) as i32,
-                    map.xy_idx(player_pos.pos.x, player_pos.pos.y) as i32,
+                    map.xy_idx(pos.pos) as i32,
+                    map.xy_idx(player_pos.pos) as i32,
                     &*map,
                 );
                 if path.success && path.steps.len() > 1 {
-                    pos.x = path.steps[1] as i32 % map.width;
-                    pos.y = path.steps[1] as i32 / map.width;
+                    pos.pos.x = path.steps[1] as i32 % map.width;
+                    pos.pos.y = path.steps[1] as i32 / map.width;
                     viewshed.dirty = true;
                 }
             }

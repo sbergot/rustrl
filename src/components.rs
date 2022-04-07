@@ -10,8 +10,7 @@ use specs_derive::{Component, ConvertSaveload};
 
 #[derive(Component)]
 pub struct Position {
-    pub x: i32,
-    pub y: i32,
+    pub pos: Point
 }
 
 #[derive(Component)]
@@ -82,4 +81,34 @@ impl SufferDamage {
             store.insert(victim, dmg).expect("Unable to insert damage");
         }
     }
+}
+
+#[derive(Component, Debug)]
+pub struct Item {}
+
+#[derive(Component, Debug)]
+pub struct Potion {
+    pub heal_amount : i32
+}
+
+#[derive(Component, Debug, Clone)]
+pub struct InBackpack {
+    pub owner : Entity
+}
+
+pub fn register_components(ecs: &mut World) {
+    ecs.register::<Position>();
+    ecs.register::<Renderable>();
+    ecs.register::<LeftMover>();
+    ecs.register::<Player>();
+    ecs.register::<Viewshed>();
+    ecs.register::<Monster>();
+    ecs.register::<Name>();
+    ecs.register::<BlocksTile>();
+    ecs.register::<CombatStats>();
+    ecs.register::<WantsToMelee>();
+    ecs.register::<SufferDamage>();
+    ecs.register::<Item>();
+    ecs.register::<Potion>();
+    ecs.register::<InBackpack>();
 }

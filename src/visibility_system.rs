@@ -23,7 +23,7 @@ impl<'a> System<'a> for VisibilitySystem {
             if viewshed.dirty {
                 viewshed.visible_tiles.clear();
                 viewshed.visible_tiles =
-                    field_of_view(Point::new(pos.x, pos.y), viewshed.range, &*map);
+                    field_of_view(pos.pos, viewshed.range, &*map);
                 viewshed
                     .visible_tiles
                     .retain(|p| p.x >= 0 && p.x < map.width && p.y >= 0 && p.y < map.height);
@@ -35,7 +35,7 @@ impl<'a> System<'a> for VisibilitySystem {
                         *t = false
                     }
                     for vis in viewshed.visible_tiles.iter() {
-                        let idx = map.xy_idx(vis.x, vis.y);
+                        let idx = map.xy_idx(*vis);
                         map.revealed_tiles[idx] = true;
                         map.visible_tiles[idx] = true;
                     }
