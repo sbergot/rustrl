@@ -39,7 +39,7 @@ pub fn delete_the_dead(ecs: &mut World) {
                             log.log(format!("{} is dead", &victim_name.name));
                         }
                         dead.push(entity);
-                    },
+                    }
                     Some(_) => log.log("You die".to_string()),
                 }
             }

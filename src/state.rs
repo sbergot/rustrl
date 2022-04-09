@@ -20,6 +20,7 @@ pub enum RunState {
     MonsterTurn,
     ShowInventory,
     ShowDropItem,
+    ShowTargeting { range: i32, item: Entity },
 }
 
 pub struct State<'a, 'b> {
@@ -47,7 +48,7 @@ impl GameState for State<'static, 'static> {
             let map = self.ecs.fetch::<Map>();
 
             let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
-            data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order) );
+            data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
             for (pos, render) in data {
                 let idx = map.xy_idx(pos.pos);
                 if map.visible_tiles[idx] {
@@ -85,16 +86,26 @@ impl GameState for State<'static, 'static> {
                     gui::ItemMenuResult::NoResponse => {}
                     gui::ItemMenuResult::Selected => {
                         let item_entity = result.1.unwrap();
-                        let mut intent = self.ecs.write_storage::<WantsToDrinkPotion>();
-                        intent
-                            .insert(
-                                self.ecs.fetch::<PlayerEntity>().entity,
-                                WantsToDrinkPotion {
-                                    potion: item_entity,
-                                },
-                            )
-                            .expect("Unable to insert intent");
-                        newrunstate = RunState::PlayerTurn;
+                        let is_ranged = self.ecs.read_storage::<Ranged>();
+                        let is_item_ranged = is_ranged.get(item_entity);
+                        if let Some(is_item_ranged) = is_item_ranged {
+                            newrunstate = RunState::ShowTargeting {
+                                range: is_item_ranged.range,
+                                item: item_entity,
+                            };
+                        } else {
+                            let mut intent = self.ecs.write_storage::<WantsToUseItem>();
+                            intent
+                                .insert(
+                                    self.ecs.fetch::<PlayerEntity>().entity,
+                                    WantsToUseItem {
+                                        item: item_entity,
+                                        target: None,
+                                    },
+                                )
+                                .expect("Unable to insert intent");
+                            newrunstate = RunState::PlayerTurn;
+                        }
                     }
                 }
             }
@@ -110,6 +121,26 @@ impl GameState for State<'static, 'static> {
                             .insert(
                                 self.ecs.fetch::<PlayerEntity>().entity,
                                 WantsToDropItem { item: item_entity },
+                            )
+                            .expect("Unable to insert intent");
+                        newrunstate = RunState::PlayerTurn;
+                    }
+                }
+            }
+            RunState::ShowTargeting { range, item } => {
+                let result = gui::ranged_target(self, ctx, range);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let mut intent = self.ecs.write_storage::<WantsToUseItem>();
+                        intent
+                            .insert(
+                                self.ecs.fetch::<PlayerEntity>().entity,
+                                WantsToUseItem {
+                                    item,
+                                    target: result.1,
+                                },
                             )
                             .expect("Unable to insert intent");
                         newrunstate = RunState::PlayerTurn;
@@ -134,7 +165,9 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
     dispatcher.setup(&mut world);
     world.register::<Renderable>();
     world.register::<Item>();
-    world.register::<Potion>();
+    world.register::<ProvidesHealing>();
+    world.register::<Ranged>();
+    world.register::<InflictsDamage>();
 
     let mut gs = State {
         ecs: world,

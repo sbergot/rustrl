@@ -1,5 +1,5 @@
 pub struct GameLog {
-    pub entries : Vec<String>
+    pub entries: Vec<String>,
 }
 
 impl GameLog {

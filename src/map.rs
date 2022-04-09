@@ -12,8 +12,8 @@ pub struct Map {
     pub tiles: Vec<TileType>,
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
-    pub blocked_tiles : Vec<bool>,
-    pub entities_tiles : Vec<Vec<Entity>>,
+    pub blocked_tiles: Vec<bool>,
+    pub entities_tiles: Vec<Vec<Entity>>,
     pub rooms: Vec<Rect>,
     pub width: i32,
     pub height: i32,
@@ -25,27 +25,43 @@ impl BaseMap for Map {
         self.tiles[idx] == TileType::Wall
     }
 
-    fn get_available_exits(&self, idx:usize) -> SmallVec<[(usize, f32); 10]> {
+    fn get_available_exits(&self, idx: usize) -> SmallVec<[(usize, f32); 10]> {
         let mut exits = SmallVec::new();
         let x = idx as i32 % self.width;
         let y = idx as i32 / self.width;
         let w = self.width as usize;
-    
-        // Cardinal directions
-        if self.is_exit_valid(Point { x: x-1, y: y}) { exits.push((idx-1, 1.0)) };
-        if self.is_exit_valid(Point { x: x+1, y: y}) { exits.push((idx+1, 1.0)) };
-        if self.is_exit_valid(Point { x: x, y: y-1}) { exits.push((idx-w, 1.0)) };
-        if self.is_exit_valid(Point { x: x, y: y+1}) { exits.push((idx+w, 1.0)) };
 
-        if self.is_exit_valid(Point { x: x-1, y: y-1 }) { exits.push(((idx-w)-1, 1.45)); }
-        if self.is_exit_valid(Point { x: x+1, y: y-1 }) { exits.push(((idx-w)+1, 1.45)); }
-        if self.is_exit_valid(Point { x: x-1, y: y+1 }) { exits.push(((idx+w)-1, 1.45)); }
-        if self.is_exit_valid(Point { x: x+1, y: y+1 }) { exits.push(((idx+w)+1, 1.45)); }
-    
+        // Cardinal directions
+        if self.is_exit_valid(Point { x: x - 1, y: y }) {
+            exits.push((idx - 1, 1.0))
+        };
+        if self.is_exit_valid(Point { x: x + 1, y: y }) {
+            exits.push((idx + 1, 1.0))
+        };
+        if self.is_exit_valid(Point { x: x, y: y - 1 }) {
+            exits.push((idx - w, 1.0))
+        };
+        if self.is_exit_valid(Point { x: x, y: y + 1 }) {
+            exits.push((idx + w, 1.0))
+        };
+
+        if self.is_exit_valid(Point { x: x - 1, y: y - 1 }) {
+            exits.push(((idx - w) - 1, 1.45));
+        }
+        if self.is_exit_valid(Point { x: x + 1, y: y - 1 }) {
+            exits.push(((idx - w) + 1, 1.45));
+        }
+        if self.is_exit_valid(Point { x: x - 1, y: y + 1 }) {
+            exits.push(((idx + w) - 1, 1.45));
+        }
+        if self.is_exit_valid(Point { x: x + 1, y: y + 1 }) {
+            exits.push(((idx + w) + 1, 1.45));
+        }
+
         exits
     }
 
-    fn get_pathing_distance(&self, idx1:usize, idx2:usize) -> f32 {
+    fn get_pathing_distance(&self, idx1: usize, idx2: usize) -> f32 {
         let w = self.width as usize;
         let p1 = Point::new(idx1 % w, idx1 / w);
         let p2 = Point::new(idx2 % w, idx2 / w);
@@ -62,6 +78,12 @@ impl Algorithm2D for Map {
 impl Map {
     pub fn xy_idx(&self, pos: Point) -> usize {
         ((pos.y * self.width) + pos.x) as usize
+    }
+
+    pub fn idx_xy(&self, idx: usize) -> Point {
+        let x = (idx as i32) % self.width;
+        let y = (idx as i32) / self.width;
+        Point { x, y }
     }
 
     fn is_exit_valid(&self, pos: Point) -> bool {
@@ -163,7 +185,7 @@ impl Map {
     }
 
     pub fn populate_blocked(&mut self) {
-        for (i,tile) in self.tiles.iter_mut().enumerate() {
+        for (i, tile) in self.tiles.iter_mut().enumerate() {
             self.blocked_tiles[i] = *tile == TileType::Wall;
         }
     }

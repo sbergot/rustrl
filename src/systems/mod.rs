@@ -19,7 +19,7 @@ pub use inventory_system::*;
 mod movement_system;
 pub use movement_system::*;
 
-use specs::{DispatcherBuilder};
+use specs::DispatcherBuilder;
 
 pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> DispatcherBuilder<'a, 'b> {
     dispatcher
@@ -32,4 +32,5 @@ pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> Dispatcher
         .with(ItemUseSystem {}, "potion_use", &[])
         .with(ItemDropSystem {}, "item_drop", &[])
         .with(DamageSystem {}, "damage", &["melee_combat"])
+        .with(VisibilitySystem {}, "visibility2", &["movement"])
 }

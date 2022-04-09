@@ -1,11 +1,11 @@
 mod components;
 mod constants;
+mod gamelog;
+mod gui;
 mod map;
 mod player;
-mod state;
-mod gui;
-mod gamelog;
 mod spawner;
+mod state;
 mod systems;
 
 use bracket_lib::prelude::{main_loop, BError, BTermBuilder};
