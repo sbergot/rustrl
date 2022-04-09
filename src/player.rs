@@ -1,5 +1,6 @@
 use crate::components::*;
 use crate::gamelog::GameLog;
+use crate::gui_handlers::UiScreen;
 use crate::map::Map;
 use crate::state::{RunState, State};
 
@@ -94,9 +95,9 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
 
             VirtualKeyCode::G => get_item(&mut gs.ecs),
 
-            VirtualKeyCode::I => return RunState::ShowInventory,
+            VirtualKeyCode::I => return RunState::ShowUi { screen: UiScreen::Inventory },
 
-            VirtualKeyCode::D => return RunState::ShowDropItem,
+            VirtualKeyCode::D => return RunState::ShowUi { screen: UiScreen::DropItem },
 
             _ => return RunState::AwaitingInput,
         },

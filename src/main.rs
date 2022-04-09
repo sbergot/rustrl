@@ -2,6 +2,7 @@ mod components;
 mod constants;
 mod gamelog;
 mod gui;
+mod gui_handlers;
 mod map;
 mod player;
 mod spawner;

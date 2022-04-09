@@ -151,11 +151,11 @@ pub enum ItemMenuResult {
     Selected,
 }
 
-pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
-    let player_entity = gs.ecs.fetch::<PlayerEntity>();
-    let names = gs.ecs.read_storage::<Name>();
-    let backpack = gs.ecs.read_storage::<InBackpack>();
-    let entities = gs.ecs.entities();
+pub fn show_inventory(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
+    let player_entity = ecs.fetch::<PlayerEntity>();
+    let names = ecs.read_storage::<Name>();
+    let backpack = ecs.read_storage::<InBackpack>();
+    let entities = ecs.entities();
 
     let inventory = (&backpack, &names)
         .join()
@@ -226,11 +226,11 @@ pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> (ItemMenuResult, Optio
     }
 }
 
-pub fn drop_item_menu(gs: &mut State, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
-    let player_entity = gs.ecs.fetch::<PlayerEntity>();
-    let names = gs.ecs.read_storage::<Name>();
-    let backpack = gs.ecs.read_storage::<InBackpack>();
-    let entities = gs.ecs.entities();
+pub fn drop_item_menu(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
+    let player_entity = ecs.fetch::<PlayerEntity>();
+    let names = ecs.read_storage::<Name>();
+    let backpack = ecs.read_storage::<InBackpack>();
+    let entities = ecs.entities();
 
     let inventory = (&backpack, &names)
         .join()
@@ -302,13 +302,13 @@ pub fn drop_item_menu(gs: &mut State, ctx: &mut BTerm) -> (ItemMenuResult, Optio
 }
 
 pub fn ranged_target(
-    gs: &mut State,
+    ecs: &mut World,
     ctx: &mut BTerm,
     range: i32,
 ) -> (ItemMenuResult, Option<Point>) {
-    let player_entity = gs.ecs.fetch::<PlayerEntity>();
-    let player_pos = gs.ecs.fetch::<PlayerPos>();
-    let viewsheds = gs.ecs.read_storage::<Viewshed>();
+    let player_entity = ecs.fetch::<PlayerEntity>();
+    let player_pos = ecs.fetch::<PlayerPos>();
+    let viewsheds = ecs.read_storage::<Viewshed>();
 
     ctx.print_color(
         5,
