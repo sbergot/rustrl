@@ -5,6 +5,7 @@ use crate::components::*;
 use crate::gamelog::GameLog;
 use crate::gui;
 use crate::gui_handlers::UiScreen;
+use crate::gui_handlers::run_screen;
 use crate::map;
 use crate::map::Map;
 use crate::player;
@@ -32,31 +33,6 @@ impl<'a, 'b> State<'a, 'b> {
         self.dispatcher.dispatch(&self.ecs);
         delete_the_dead(&mut self.ecs);
         self.ecs.maintain();
-    }
-
-    fn use_selected_item(&mut self, item_entity: Entity) -> RunState {
-        let is_ranged = self.ecs.read_storage::<Ranged>();
-        let is_item_ranged = is_ranged.get(item_entity);
-        if let Some(is_item_ranged) = is_item_ranged {
-            RunState::ShowUi {
-                screen: UiScreen::Targeting {
-                    range: is_item_ranged.range,
-                    item: item_entity,
-                },
-            }
-        } else {
-            let mut intent = self.ecs.write_storage::<WantsToUseItem>();
-            intent
-                .insert(
-                    self.ecs.fetch::<PlayerEntity>().entity,
-                    WantsToUseItem {
-                        item: item_entity,
-                        target: None,
-                    },
-                )
-                .expect("Unable to insert intent");
-            RunState::PlayerTurn
-        }
     }
 }
 
@@ -103,55 +79,10 @@ impl GameState for State<'static, 'static> {
                 self.run_systems();
                 newrunstate = RunState::AwaitingInput;
             }
-            RunState::ShowUi { screen } => match screen {
-                UiScreen::Inventory => {
-                    let result = gui::show_inventory(&mut self.ecs, ctx);
-                    match result.0 {
-                        gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
-                        gui::ItemMenuResult::NoResponse => {}
-                        gui::ItemMenuResult::Selected => {
-                            let item_entity = result.1.unwrap();
-                            newrunstate = self.use_selected_item(item_entity);
-                        }
-                    }
-                }
-                UiScreen::DropItem => {
-                    let result = gui::drop_item_menu(&mut self.ecs, ctx);
-                    match result.0 {
-                        gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
-                        gui::ItemMenuResult::NoResponse => {}
-                        gui::ItemMenuResult::Selected => {
-                            let item_entity = result.1.unwrap();
-                            let mut intent = self.ecs.write_storage::<WantsToDropItem>();
-                            intent
-                                .insert(
-                                    self.ecs.fetch::<PlayerEntity>().entity,
-                                    WantsToDropItem { item: item_entity },
-                                )
-                                .expect("Unable to insert intent");
-                            newrunstate = RunState::PlayerTurn;
-                        }
-                    }
-                }
-                UiScreen::Targeting { range, item } => {
-                    let result = gui::ranged_target(&mut self.ecs, ctx, range);
-                    match result.0 {
-                        gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
-                        gui::ItemMenuResult::NoResponse => {}
-                        gui::ItemMenuResult::Selected => {
-                            let mut intent = self.ecs.write_storage::<WantsToUseItem>();
-                            intent
-                                .insert(
-                                    self.ecs.fetch::<PlayerEntity>().entity,
-                                    WantsToUseItem {
-                                        item,
-                                        target: result.1,
-                                    },
-                                )
-                                .expect("Unable to insert intent");
-                            newrunstate = RunState::PlayerTurn;
-                        }
-                    }
+            RunState::ShowUi { screen } => {
+                let res = run_screen(&mut self.ecs, ctx, screen);
+                if let Some(newstate) = res {
+                    newrunstate = newstate;
                 }
             },
         }

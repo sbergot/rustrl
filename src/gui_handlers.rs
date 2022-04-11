@@ -15,14 +15,37 @@ pub enum UiScreen {
     Targeting { range: i32, item: Entity },
 }
 
-pub trait UiHandler<T> {
-    fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<T>);
-    fn handle(&self, ecs: &mut World, input: T) -> RunState;
+pub fn run_screen(ecs: &mut World, ctx: &mut BTerm, screen: UiScreen) -> Option<RunState> {
+    match screen {
+        UiScreen::Inventory => (InventoryHandler {}).run(ecs, ctx),
+        UiScreen::DropItem => (DropItemHandler {}).run(ecs, ctx),
+        UiScreen::Targeting { range, item } => (TargetingHandler { range, item }).run(ecs, ctx)
+    }
 }
 
-pub struct InventoryHandler {}
 
-impl UiHandler<Entity> for InventoryHandler {
+trait UiHandler {
+    type Output;
+    fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>);
+    fn handle(&self, ecs: &mut World, input: Self::Output) -> RunState;
+
+    fn run(&self, ecs: &mut World, ctx: &mut BTerm) -> Option<RunState> {
+        let (menuresult, output) = self.show(ecs, ctx);
+        match menuresult {
+            gui::ItemMenuResult::Cancel => Some(RunState::AwaitingInput),
+            gui::ItemMenuResult::NoResponse => None,
+            gui::ItemMenuResult::Selected => {
+                Some(self.handle(ecs, output.unwrap()))
+            }
+        }
+    }
+}
+
+struct InventoryHandler {}
+
+impl UiHandler for InventoryHandler {
+    type Output = Entity;
+
     fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
         gui::show_inventory(ecs, ctx)
     }
@@ -53,9 +76,11 @@ impl UiHandler<Entity> for InventoryHandler {
     }
 }
 
-pub struct DropItemHandler {}
+struct DropItemHandler {}
 
-impl UiHandler<Entity> for DropItemHandler {
+impl UiHandler for DropItemHandler {
+    type Output = Entity;
+
     fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
         gui::drop_item_menu(ecs, ctx)
     }
@@ -72,12 +97,14 @@ impl UiHandler<Entity> for DropItemHandler {
     }
 }
 
-pub struct TargetingHandler {
+struct TargetingHandler {
     range: i32,
     item: Entity,
 }
 
-impl UiHandler<Point> for TargetingHandler {
+impl UiHandler for TargetingHandler {
+    type Output = Point;
+
     fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Point>) {
         gui::ranged_target(ecs, ctx, self.range)
     }

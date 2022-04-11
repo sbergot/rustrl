@@ -7,7 +7,6 @@ use crate::{
     gamelog::GameLog,
     map::Map,
     player::{PlayerEntity, PlayerPos},
-    state::State,
 };
 
 pub fn draw_ui(ecs: &World, ctx: &mut BTerm) {
