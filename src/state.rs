@@ -100,7 +100,10 @@ impl GameState for State<'static, 'static> {
                     MainMenuResult::Selected{ selected } => {
                         match selected {
                             MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
-                            MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
+                            MainMenuSelection::LoadGame => {
+                                load_game(&mut self.ecs);
+                                newrunstate = RunState::AwaitingInput;
+                            }
                             MainMenuSelection::Quit => { ::std::process::exit(0); }
                         }
                     }
