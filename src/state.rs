@@ -1,11 +1,12 @@
 use bracket_lib::prelude::*;
 use specs::prelude::*;
+use specs::saveload::*;
 
 use crate::components::*;
 use crate::gamelog::GameLog;
-use crate::gui;
-use crate::gui_handlers::UiScreen;
-use crate::gui_handlers::run_screen;
+use crate::gui::gui::draw_ui;
+use crate::gui::gui_handlers::*;
+use crate::gui::main_menu::*;
 use crate::map;
 use crate::map::Map;
 use crate::player;
@@ -21,6 +22,8 @@ pub enum RunState {
     PlayerTurn,
     MonsterTurn,
     ShowUi { screen: UiScreen },
+    MainMenu { menu_selection : MainMenuSelection },
+    SaveGame,
 }
 
 pub struct State<'a, 'b> {
@@ -34,33 +37,38 @@ impl<'a, 'b> State<'a, 'b> {
         delete_the_dead(&mut self.ecs);
         self.ecs.maintain();
     }
+
+    fn draw_renderables(&mut self, ctx: &mut BTerm) {
+        let positions = self.ecs.read_storage::<Position>();
+        let renderables = self.ecs.read_storage::<Renderable>();
+        let map = self.ecs.fetch::<Map>();
+        let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+        data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
+        for (pos, render) in data {
+            let idx = map.xy_idx(pos.pos);
+            if map.visible_tiles[idx] {
+                ctx.set(pos.pos.x, pos.pos.y, render.fg, render.bg, render.glyph)
+            }
+        }
+    }
 }
 
 impl GameState for State<'static, 'static> {
     fn tick(&mut self, ctx: &mut BTerm) {
         ctx.cls();
 
-        Map::draw_map(&self.ecs, ctx);
-
-        {
-            let positions = self.ecs.read_storage::<Position>();
-            let renderables = self.ecs.read_storage::<Renderable>();
-            let map = self.ecs.fetch::<Map>();
-
-            let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
-            data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
-            for (pos, render) in data {
-                let idx = map.xy_idx(pos.pos);
-                if map.visible_tiles[idx] {
-                    ctx.set(pos.pos.x, pos.pos.y, render.fg, render.bg, render.glyph)
-                }
-            }
-        }
-
         let mut newrunstate;
         {
             let runstate = self.ecs.fetch::<RunState>();
             newrunstate = *runstate;
+        }
+
+        match newrunstate {
+            RunState::MainMenu {..} => {}
+            _ => {
+                Map::draw_map(&self.ecs, ctx);
+                self.draw_renderables(ctx);
+            }
         }
 
         match newrunstate {
@@ -85,6 +93,24 @@ impl GameState for State<'static, 'static> {
                     newrunstate = newstate;
                 }
             },
+            RunState::MainMenu {..} => {
+                let result = main_menu(self, ctx);
+                match result {
+                    MainMenuResult::NoSelection{ selected } => newrunstate = RunState::MainMenu{ menu_selection: selected },
+                    MainMenuResult::Selected{ selected } => {
+                        match selected {
+                            MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
+                            MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
+                            MainMenuSelection::Quit => { ::std::process::exit(0); }
+                        }
+                    }
+                }
+            },
+            RunState::SaveGame => {
+                save_game(&mut self.ecs);
+
+                newrunstate = RunState::MainMenu{ menu_selection : MainMenuSelection::LoadGame };
+            }
         }
 
         {
@@ -92,7 +118,7 @@ impl GameState for State<'static, 'static> {
             *runwriter = newrunstate;
         }
 
-        gui::draw_ui(&self.ecs, ctx);
+        draw_ui(&self.ecs, ctx);
     }
 }
 
@@ -107,6 +133,10 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
     world.register::<Ranged>();
     world.register::<InflictsDamage>();
 
+    world.register::<SimpleMarker<SerializeMe>>();
+    world.register::<SerializationHelper>();
+    world.insert(SimpleMarkerAllocator::<SerializeMe>::new());
+
     let mut gs = State {
         ecs: world,
         dispatcher,
@@ -114,7 +144,7 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
 
     let (rooms, map) = map::Map::new_map_rooms_and_corridors(width, height);
     gs.ecs.insert(map);
-    gs.ecs.insert(RunState::PreRun);
+    gs.ecs.insert(RunState::MainMenu { menu_selection: MainMenuSelection::NewGame });
     gs.ecs.insert(GameLog {
         entries: vec!["Welcome to Rusty Roguelike".to_string()],
     });

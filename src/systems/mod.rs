@@ -19,6 +19,9 @@ pub use inventory_system::*;
 mod movement_system;
 pub use movement_system::*;
 
+mod saveload_system;
+pub use saveload_system::*;
+
 use specs::DispatcherBuilder;
 
 pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> DispatcherBuilder<'a, 'b> {

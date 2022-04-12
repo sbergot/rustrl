@@ -3,7 +3,7 @@ use specs::*;
 
 use crate::{
     components::*,
-    gui::{self, ItemMenuResult},
+    gui::gui::*,
     player::PlayerEntity,
     state::RunState,
 };
@@ -32,9 +32,9 @@ trait UiHandler {
     fn run(&self, ecs: &mut World, ctx: &mut BTerm) -> Option<RunState> {
         let (menuresult, output) = self.show(ecs, ctx);
         match menuresult {
-            gui::ItemMenuResult::Cancel => Some(RunState::AwaitingInput),
-            gui::ItemMenuResult::NoResponse => None,
-            gui::ItemMenuResult::Selected => {
+                ItemMenuResult::Cancel => Some(RunState::AwaitingInput),
+                ItemMenuResult::NoResponse => None,
+                ItemMenuResult::Selected => {
                 Some(self.handle(ecs, output.unwrap()))
             }
         }
@@ -47,7 +47,7 @@ impl UiHandler for InventoryHandler {
     type Output = Entity;
 
     fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
-        gui::show_inventory(ecs, ctx)
+        show_inventory(ecs, ctx)
     }
 
     fn handle(&self, ecs: &mut World, input: Entity) -> RunState {
@@ -82,7 +82,7 @@ impl UiHandler for DropItemHandler {
     type Output = Entity;
 
     fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
-        gui::drop_item_menu(ecs, ctx)
+        drop_item_menu(ecs, ctx)
     }
 
     fn handle(&self, ecs: &mut World, input: Entity) -> RunState {
@@ -106,7 +106,7 @@ impl UiHandler for TargetingHandler {
     type Output = Point;
 
     fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Point>) {
-        gui::ranged_target(ecs, ctx, self.range)
+        ranged_target(ecs, ctx, self.range)
     }
 
     fn handle(&self, ecs: &mut World, input: Point) -> RunState {

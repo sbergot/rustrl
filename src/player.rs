@@ -1,8 +1,8 @@
 use crate::components::*;
 use crate::gamelog::GameLog;
-use crate::gui_handlers::UiScreen;
 use crate::map::Map;
 use crate::state::{RunState, State};
+use crate::gui::gui_handlers::UiScreen;
 
 use bracket_lib::prelude::*;
 use specs::prelude::*;
@@ -98,6 +98,8 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             VirtualKeyCode::I => return RunState::ShowUi { screen: UiScreen::Inventory },
 
             VirtualKeyCode::D => return RunState::ShowUi { screen: UiScreen::DropItem },
+
+            VirtualKeyCode::Escape => return RunState::SaveGame,
 
             _ => return RunState::AwaitingInput,
         },

@@ -1,6 +1,6 @@
 use crate::components::*;
 use bracket_lib::prelude::*;
-use specs::*;
+use specs::{*, saveload::*};
 
 const MAX_MONSTERS: i32 = 4;
 const MAX_ITEMS: i32 = 3;
@@ -25,6 +25,7 @@ pub fn player(ecs: &mut World, pos: Point) -> Entity {
             defense: 2,
             power: 5,
         })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }
 
@@ -72,6 +73,7 @@ fn monster<S: ToString>(ecs: &mut World, pos: Point, glyph: FontCharType, name: 
             defense: 1,
             power: 4,
         })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
@@ -136,6 +138,7 @@ fn health_potion(ecs: &mut World, pos: Point) {
         })
         .with(Item {})
         .with(ProvidesHealing { heal_amount: 8 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
@@ -155,6 +158,7 @@ fn magic_missile_scroll(ecs: &mut World, pos: Point) {
         .with(Consumable {})
         .with(Ranged { range: 6 })
         .with(InflictsDamage { damage: 8 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 

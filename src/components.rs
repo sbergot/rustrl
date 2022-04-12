@@ -3,17 +3,19 @@ use serde::*;
 use specs::{
     error::NoError,
     prelude::*,
-    saveload::{ConvertSaveload, Marker},
+    saveload::*,
     Entity,
 };
 use specs_derive::{Component, ConvertSaveload};
 
-#[derive(Component)]
+use crate::map::Map;
+
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct Position {
     pub pos: Point,
 }
 
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct Renderable {
     pub glyph: FontCharType,
     pub fg: RGB,
@@ -21,13 +23,13 @@ pub struct Renderable {
     pub render_order: i32,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Player {}
 
-#[derive(Component, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Monster {}
 
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct Viewshed {
     pub visible_tiles: Vec<Point>,
     pub range: i32,
@@ -44,15 +46,15 @@ impl Viewshed {
     }
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct Name {
     pub name: String,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 pub struct BlocksTile {}
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct CombatStats {
     pub max_hp: i32,
     pub hp: i32,
@@ -60,12 +62,12 @@ pub struct CombatStats {
     pub power: i32,
 }
 
-#[derive(Component, Debug, ConvertSaveload, Clone)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct WantsToMelee {
     pub target: Entity,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct SufferDamage {
     pub amount: Vec<i32>,
 }
@@ -83,31 +85,31 @@ impl SufferDamage {
     }
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Item {}
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct ProvidesHealing {
     pub heal_amount: i32,
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct InBackpack {
     pub owner: Entity,
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct WantsToMove {
     pub target: Point,
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct WantsToPickupItem {
     pub collected_by: Entity,
     pub item: Entity,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct WantsToUseItem {
     pub item: Entity,
     pub target: Option<Point>,
@@ -118,15 +120,22 @@ pub struct WantsToDropItem {
     pub item: Entity,
 }
 
-#[derive(Component, Debug, PartialEq)]
+#[derive(Component, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Consumable {}
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct Ranged {
     pub range: i32,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct InflictsDamage {
     pub damage: i32,
+}
+
+pub struct SerializeMe;
+
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct SerializationHelper {
+    pub map : Map
 }

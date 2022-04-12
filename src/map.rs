@@ -1,18 +1,23 @@
 use bracket_lib::prelude::*;
+use serde::{Serialize, Deserialize};
 use specs::*;
 use std::cmp::{max, min};
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum TileType {
     Wall,
     Floor,
 }
 
+#[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Map {
     pub tiles: Vec<TileType>,
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
     pub blocked_tiles: Vec<bool>,
+
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
     pub entities_tiles: Vec<Vec<Entity>>,
     pub rooms: Vec<Rect>,
     pub width: i32,
