@@ -3,6 +3,8 @@ use std::{
     path::Path,
 };
 
+
+#[allow(deprecated)]
 use specs::{error::NoError, saveload::*, *};
 
 use crate::{
@@ -27,6 +29,7 @@ macro_rules! serialize_individually {
     };
 }
 
+#[allow(deprecated)]
 pub fn save_game(ecs: &mut World) {
     // Create helper
     let mapcopy = ecs.get_mut::<Map>().unwrap().clone();
@@ -84,7 +87,8 @@ pub fn does_save_exist() -> bool {
 macro_rules! deserialize_individually {
     ($ecs:expr, $de:expr, $data:expr, $( $type:ty),*) => {
         $(
-        DeserializeComponents::<NoError, _>::deserialize(
+            #[allow(deprecated)]
+            DeserializeComponents::<NoError, _>::deserialize(
             &mut ( &mut $ecs.write_storage::<$type>(), ),
             &mut $data.0, // entities
             &mut $data.1, // marker

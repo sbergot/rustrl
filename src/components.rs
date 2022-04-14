@@ -1,5 +1,6 @@
 use bracket_lib::prelude::{FontCharType, Point, RGB};
 use serde::*;
+#[allow(deprecated)]
 use specs::{
     error::NoError,
     prelude::*,
