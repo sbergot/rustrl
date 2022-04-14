@@ -17,9 +17,9 @@ pub enum UiScreen {
 
 pub fn run_screen(ecs: &mut World, ctx: &mut BTerm, screen: UiScreen) -> Option<RunState> {
     match screen {
-        UiScreen::Inventory => (InventoryHandler {}).run(ecs, ctx),
-        UiScreen::DropItem => (DropItemHandler {}).run(ecs, ctx),
-        UiScreen::Targeting { range, item } => (TargetingHandler { range, item }).run(ecs, ctx)
+        UiScreen::Inventory => (InventoryHandler {}).run_handler(ecs, ctx),
+        UiScreen::DropItem => (DropItemHandler {}).run_handler(ecs, ctx),
+        UiScreen::Targeting { range, item } => (TargetingHandler { range, item }).run_handler(ecs, ctx)
     }
 }
 
@@ -29,7 +29,7 @@ trait UiHandler {
     fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>);
     fn handle(&self, ecs: &mut World, input: Self::Output) -> RunState;
 
-    fn run(&self, ecs: &mut World, ctx: &mut BTerm) -> Option<RunState> {
+    fn run_handler(&self, ecs: &mut World, ctx: &mut BTerm) -> Option<RunState> {
         let (menuresult, output) = self.show(ecs, ctx);
         match menuresult {
                 ItemMenuResult::Cancel => Some(RunState::AwaitingInput),
@@ -41,6 +41,7 @@ trait UiHandler {
     }
 }
 
+#[derive(PartialEq, Copy, Clone)]
 struct InventoryHandler {}
 
 impl UiHandler for InventoryHandler {
@@ -76,6 +77,7 @@ impl UiHandler for InventoryHandler {
     }
 }
 
+#[derive(PartialEq, Copy, Clone)]
 struct DropItemHandler {}
 
 impl UiHandler for DropItemHandler {
@@ -97,6 +99,7 @@ impl UiHandler for DropItemHandler {
     }
 }
 
+#[derive(PartialEq, Copy, Clone)]
 struct TargetingHandler {
     range: i32,
     item: Entity,
