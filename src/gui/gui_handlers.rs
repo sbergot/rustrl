@@ -3,7 +3,7 @@ use specs::*;
 
 use crate::{
     components::*,
-    gui::gui::*,
+    gui::game_ui::*,
     player::PlayerEntity,
     state::RunState,
 };

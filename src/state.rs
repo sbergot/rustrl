@@ -4,7 +4,7 @@ use specs::saveload::*;
 
 use crate::components::*;
 use crate::gamelog::GameLog;
-use crate::gui::gui::draw_ui;
+use crate::gui::game_ui::draw_ui;
 use crate::gui::gui_handlers::*;
 use crate::gui::main_menu::*;
 use crate::map;

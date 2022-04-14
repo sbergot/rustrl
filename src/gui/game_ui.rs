@@ -9,6 +9,8 @@ use crate::{
     player::{PlayerEntity, PlayerPos},
 };
 
+use super::components::show_selection;
+
 pub fn draw_ui(ecs: &World, ctx: &mut BTerm) {
     let map = ecs.read_resource::<Map>();
     ctx.draw_box(
@@ -156,73 +158,13 @@ pub fn show_inventory(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Opti
     let backpack = ecs.read_storage::<InBackpack>();
     let entities = ecs.entities();
 
-    let inventory = (&backpack, &names)
+    let options : Vec<(String, Entity)> = (&backpack, &names, &entities)
         .join()
-        .filter(|(item, _name)| item.owner == player_entity.entity);
-    let count = inventory.count();
+        .filter(|(item, _name, _e)| item.owner == player_entity.entity)
+        .map(|(_i, name, entity)| (name.name.clone(), entity))
+        .collect();
 
-    let mut y = (25 - (count / 2)) as i32;
-    ctx.draw_box(
-        15,
-        y - 2,
-        31,
-        (count + 3) as i32,
-        RGB::named(WHITE),
-        RGB::named(BLACK),
-    );
-    ctx.print_color(
-        18,
-        y - 2,
-        RGB::named(YELLOW),
-        RGB::named(BLACK),
-        "Inventory",
-    );
-    ctx.print_color(
-        18,
-        y + count as i32 + 1,
-        RGB::named(YELLOW),
-        RGB::named(BLACK),
-        "ESCAPE to cancel",
-    );
-
-    let mut equippable: Vec<Entity> = Vec::new();
-    let mut j = 0;
-    for (_pack, name, entity) in (&backpack, &names, &entities)
-        .join()
-        .filter(|item| item.0.owner == player_entity.entity)
-    {
-        ctx.set(17, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437('('));
-        ctx.set(
-            18,
-            y,
-            RGB::named(YELLOW),
-            RGB::named(BLACK),
-            97 + j as FontCharType,
-        );
-        ctx.set(19, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437(')'));
-
-        ctx.print(21, y, &name.name.to_string());
-        equippable.push(entity);
-        y += 1;
-        j += 1;
-    }
-
-    match ctx.key {
-        None => (ItemMenuResult::NoResponse, None),
-        Some(key) => match key {
-            VirtualKeyCode::Escape => (ItemMenuResult::Cancel, None),
-            _ => {
-                let selection = letter_to_option(key);
-                if selection > -1 && selection < count as i32 {
-                    return (
-                        ItemMenuResult::Selected,
-                        Some(equippable[selection as usize]),
-                    );
-                }
-                (ItemMenuResult::NoResponse, None)
-            }
-        },
-    }
+    show_selection(ctx, "Inventory", &options)
 }
 
 pub fn drop_item_menu(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
@@ -231,73 +173,13 @@ pub fn drop_item_menu(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Opti
     let backpack = ecs.read_storage::<InBackpack>();
     let entities = ecs.entities();
 
-    let inventory = (&backpack, &names)
-        .join()
-        .filter(|item| item.0.owner == player_entity.entity);
-    let count = inventory.count();
+    let options : Vec<(String, Entity)> = (&backpack, &names, &entities)
+    .join()
+    .filter(|(item, _name, _e)| item.owner == player_entity.entity)
+    .map(|(_i, name, entity)| (name.name.clone(), entity))
+    .collect();
 
-    let mut y = (25 - (count / 2)) as i32;
-    ctx.draw_box(
-        15,
-        y - 2,
-        31,
-        (count + 3) as i32,
-        RGB::named(WHITE),
-        RGB::named(BLACK),
-    );
-    ctx.print_color(
-        18,
-        y - 2,
-        RGB::named(YELLOW),
-        RGB::named(BLACK),
-        "Drop Which Item?",
-    );
-    ctx.print_color(
-        18,
-        y + count as i32 + 1,
-        RGB::named(YELLOW),
-        RGB::named(BLACK),
-        "ESCAPE to cancel",
-    );
-
-    let mut equippable: Vec<Entity> = Vec::new();
-    let mut j = 0;
-    for (entity, _pack, name) in (&entities, &backpack, &names)
-        .join()
-        .filter(|item| item.1.owner == player_entity.entity)
-    {
-        ctx.set(17, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437('('));
-        ctx.set(
-            18,
-            y,
-            RGB::named(YELLOW),
-            RGB::named(BLACK),
-            97 + j as FontCharType,
-        );
-        ctx.set(19, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437(')'));
-
-        ctx.print(21, y, &name.name.to_string());
-        equippable.push(entity);
-        y += 1;
-        j += 1;
-    }
-
-    match ctx.key {
-        None => (ItemMenuResult::NoResponse, None),
-        Some(key) => match key {
-            VirtualKeyCode::Escape => (ItemMenuResult::Cancel, None),
-            _ => {
-                let selection = letter_to_option(key);
-                if selection > -1 && selection < count as i32 {
-                    return (
-                        ItemMenuResult::Selected,
-                        Some(equippable[selection as usize]),
-                    );
-                }
-                (ItemMenuResult::NoResponse, None)
-            }
-        },
-    }
+    show_selection(ctx, "Drop Which Item?", &options)
 }
 
 pub fn ranged_target(
@@ -334,23 +216,19 @@ pub fn ranged_target(
     }
 
     // Draw mouse cursor
-    let mouse_pos = ctx.mouse_pos();
-    let mut valid_target = false;
-    for idx in available_cells.iter() {
-        if idx.x == mouse_pos.0 && idx.y == mouse_pos.1 {
-            valid_target = true;
-        }
-    }
+    let mouse_pos = ctx.mouse_point();
+    let valid_target = available_cells.iter().any(|c| **c == mouse_pos);
+
     if valid_target {
-        ctx.set_bg(mouse_pos.0, mouse_pos.1, RGB::named(CYAN));
+        ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(CYAN));
         if ctx.left_click {
             return (
                 ItemMenuResult::Selected,
-                Some(Point::new(mouse_pos.0, mouse_pos.1)),
+                Some(mouse_pos),
             );
         }
     } else {
-        ctx.set_bg(mouse_pos.0, mouse_pos.1, RGB::named(RED));
+        ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(RED));
         if ctx.left_click {
             return (ItemMenuResult::Cancel, None);
         }
