@@ -158,10 +158,10 @@ pub fn show_inventory(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Opti
     let backpack = ecs.read_storage::<InBackpack>();
     let entities = ecs.entities();
 
-    let options : Vec<(String, Entity)> = (&backpack, &names, &entities)
+    let options: Vec<(&str, Entity)> = (&backpack, &names, &entities)
         .join()
         .filter(|(item, _name, _e)| item.owner == player_entity.entity)
-        .map(|(_i, name, entity)| (name.name.clone(), entity))
+        .map(|(_i, name, entity)| (name.name.as_str(), entity))
         .collect();
 
     show_selection(ctx, "Inventory", &options)
@@ -173,11 +173,11 @@ pub fn drop_item_menu(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Opti
     let backpack = ecs.read_storage::<InBackpack>();
     let entities = ecs.entities();
 
-    let options : Vec<(String, Entity)> = (&backpack, &names, &entities)
-    .join()
-    .filter(|(item, _name, _e)| item.owner == player_entity.entity)
-    .map(|(_i, name, entity)| (name.name.clone(), entity))
-    .collect();
+    let options: Vec<(&str, Entity)> = (&backpack, &names, &entities)
+        .join()
+        .filter(|(item, _name, _e)| item.owner == player_entity.entity)
+        .map(|(_i, name, entity)| (name.name.as_str(), entity))
+        .collect();
 
     show_selection(ctx, "Drop Which Item?", &options)
 }
@@ -222,10 +222,7 @@ pub fn ranged_target(
     if valid_target {
         ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(CYAN));
         if ctx.left_click {
-            return (
-                ItemMenuResult::Selected,
-                Some(mouse_pos),
-            );
+            return (ItemMenuResult::Selected, Some(mouse_pos));
         }
     } else {
         ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(RED));

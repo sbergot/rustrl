@@ -3,7 +3,7 @@ use specs::*;
 
 use super::game_ui::ItemMenuResult;
 
-pub fn show_selection(ctx: &mut BTerm, title: &str, options: &Vec<(String, Entity)>) -> (ItemMenuResult, Option<Entity>) {
+pub fn show_selection(ctx: &mut BTerm, title: &str, options: &Vec<(&str, Entity)>) -> (ItemMenuResult, Option<Entity>) {
     let count = options.len();
 
     let mut y = (25 - (count / 2)) as i32;
