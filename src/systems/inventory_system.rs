@@ -62,10 +62,13 @@ impl<'a> System<'a> for ItemUseSystem {
         ReadStorage<'a, AreaOfEffect>,
         ReadStorage<'a, Confusion>,
         ReadStorage<'a, Consumable>,
+        ReadStorage<'a, Equippable>,
+        WriteStorage<'a, Equipped>,
         WriteStorage<'a, WantsToUseItem>,
         WriteStorage<'a, SufferDamage>,
         WriteStorage<'a, CombatStats>,
         WriteStorage<'a, Confused>,
+        WriteStorage<'a, InBackpack>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -81,10 +84,13 @@ impl<'a> System<'a> for ItemUseSystem {
             area_of_effect,
             confusion,
             consumables,
+            equippables,
+            mut equipped,
             mut wants_use_items,
             mut suffer_damage,
             mut combat_stats,
             mut confused,
+            mut backpack,
         ) = data;
 
         for (wants_use_item, player) in (&wants_use_items, players.maybe()).join() {
@@ -120,6 +126,47 @@ impl<'a> System<'a> for ItemUseSystem {
                             }
                         }
                     }
+                }
+            }
+
+            let item_equippable = equippables.get(wants_use_item.item);
+            if let Some(can_equip) = item_equippable {
+                let target_slot = can_equip.slot;
+                let target = targets[0];
+
+                // Remove any items the target has in the item's slot
+                let mut to_unequip: Vec<Entity> = Vec::new();
+                for (item_entity, already_equipped, name) in (&entities, &equipped, &names).join() {
+                    if already_equipped.owner == target && already_equipped.slot == target_slot {
+                        to_unequip.push(item_entity);
+                        if let Some(_p) = player {
+                            gamelog.entries.push(format!("You unequip {}.", name.name));
+                        }
+                    }
+                }
+                for item in to_unequip.iter() {
+                    equipped.remove(*item);
+                    backpack
+                        .insert(*item, InBackpack { owner: target })
+                        .expect("Unable to insert backpack entry");
+                }
+
+                // Wield the item
+                equipped
+                    .insert(
+                        wants_use_item.item,
+                        Equipped {
+                            owner: target,
+                            slot: target_slot,
+                        },
+                    )
+                    .expect("Unable to insert equipped component");
+                backpack.remove(wants_use_item.item);
+                if let Some(_p) = player {
+                    gamelog.entries.push(format!(
+                        "You equip {}.",
+                        names.get(wants_use_item.item).unwrap().name
+                    ));
                 }
             }
 

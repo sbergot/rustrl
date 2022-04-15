@@ -3,7 +3,7 @@ use bracket_lib::prelude::*;
 use specs::{*, saveload::*};
 
 const MAX_MONSTERS: i32 = 4;
-const MAX_ITEMS: i32 = 3;
+const MAX_ITEMS: i32 = 5;
 
 pub fn player(ecs: &mut World, pos: Point) -> Entity {
     ecs.create_entity()
@@ -178,6 +178,7 @@ fn fireball_scroll(ecs: &mut World, pos: Point) {
         .with(Ranged{ range: 6 })
         .with(InflictsDamage{ damage: 20 })
         .with(AreaOfEffect{ radius: 3 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
@@ -195,6 +196,41 @@ fn confusion_scroll(ecs: &mut World, pos: Point) {
         .with(Consumable{})
         .with(Ranged{ range: 6 })
         .with(Confusion{ turns: 4 })
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
+fn dagger(ecs: &mut World, pos: Point) {
+    ecs.create_entity()
+        .with(Position{ pos })
+        .with(Renderable{
+            glyph: to_cp437('/'),
+            fg: RGB::named(CYAN),
+            bg: RGB::named(BLACK),
+            render_order: 2
+        })
+        .with(Name{ name : "Dagger".to_string() })
+        .with(Item{})
+        .with(Equippable{ slot: EquipmentSlot::Melee })
+        .with(MeleePowerBonus{ power: 2 })
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
+fn shield(ecs: &mut World, pos: Point) {
+    ecs.create_entity()
+        .with(Position{ pos })
+        .with(Renderable{
+            glyph: to_cp437('('),
+            fg: RGB::named(CYAN),
+            bg: RGB::named(BLACK),
+            render_order: 2
+        })
+        .with(Name{ name : "Shield".to_string() })
+        .with(Item{})
+        .with(Equippable{ slot: EquipmentSlot::Shield })
+        .with(DefenseBonus{ defense: 1 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
@@ -202,12 +238,14 @@ fn random_item(ecs: &mut World, pos: Point) {
     let roll: i32;
     {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        roll = rng.roll_dice(1, 4);
+        roll = rng.roll_dice(1, 6);
     }
     match roll {
         1 => health_potion(ecs, pos),
         2 => fireball_scroll(ecs, pos),
         3 => confusion_scroll(ecs, pos),
+        4 => dagger(ecs, pos),
+        5 => shield(ecs, pos),
         _ => magic_missile_scroll(ecs, pos),
     }
 }
