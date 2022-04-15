@@ -13,6 +13,9 @@ pub use melee_combat_system::*;
 mod damage_system;
 pub use damage_system::*;
 
+mod dead_collection_system;
+pub use dead_collection_system::*;
+
 mod inventory_system;
 pub use inventory_system::*;
 
@@ -36,4 +39,5 @@ pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> Dispatcher
         .with(ItemDropSystem {}, "item_drop", &[])
         .with(DamageSystem {}, "damage", &["melee_combat"])
         .with(VisibilitySystem {}, "visibility2", &["movement"])
+        .with(DeadCollection {}, "dead_collection", &["damage"])
 }

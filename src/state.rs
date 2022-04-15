@@ -34,7 +34,6 @@ pub struct State<'a, 'b> {
 impl<'a, 'b> State<'a, 'b> {
     fn run_systems(&mut self) {
         self.dispatcher.dispatch(&self.ecs);
-        delete_the_dead(&mut self.ecs);
         self.ecs.maintain();
     }
 

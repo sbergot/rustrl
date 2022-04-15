@@ -86,19 +86,6 @@ impl SufferDamage {
     }
 }
 
-#[derive(Component, Serialize, Deserialize, Clone)]
-pub struct Item {}
-
-#[derive(Component, ConvertSaveload, Clone)]
-pub struct ProvidesHealing {
-    pub heal_amount: i32,
-}
-
-#[derive(Component, ConvertSaveload, Clone)]
-pub struct InBackpack {
-    pub owner: Entity,
-}
-
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct WantsToMove {
     pub target: Point,
@@ -121,6 +108,14 @@ pub struct WantsToDropItem {
     pub item: Entity,
 }
 
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct Item {}
+
+#[derive(Component, ConvertSaveload, Clone)]
+pub struct InBackpack {
+    pub owner: Entity,
+}
+
 #[derive(Component, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Consumable {}
 
@@ -132,6 +127,16 @@ pub struct Ranged {
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct InflictsDamage {
     pub damage: i32,
+}
+
+#[derive(Component, ConvertSaveload, Clone)]
+pub struct AreaOfEffect {
+    pub radius : i32
+}
+
+#[derive(Component, ConvertSaveload, Clone)]
+pub struct ProvidesHealing {
+    pub heal_amount: i32,
 }
 
 pub struct SerializeMe;
