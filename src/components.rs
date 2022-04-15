@@ -87,6 +87,11 @@ impl SufferDamage {
 }
 
 #[derive(Component, ConvertSaveload, Clone)]
+pub struct Confused {
+    pub turns : i32
+}
+
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct WantsToMove {
     pub target: Point,
 }
@@ -137,6 +142,11 @@ pub struct AreaOfEffect {
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct ProvidesHealing {
     pub heal_amount: i32,
+}
+
+#[derive(Component, ConvertSaveload, Clone)]
+pub struct Confusion {
+    pub turns : i32
 }
 
 pub struct SerializeMe;

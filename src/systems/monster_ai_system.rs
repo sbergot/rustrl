@@ -14,8 +14,9 @@ impl<'a> System<'a> for MonsterAI {
         ReadExpect<'a, PlayerEntity>,
         ReadExpect<'a, RunState>,
         ReadStorage<'a, Viewshed>,
-        WriteStorage<'a, Position>,
         ReadStorage<'a, Monster>,
+        WriteStorage<'a, Confused>,
+        WriteStorage<'a, Position>,
         WriteStorage<'a, WantsToMelee>,
         WriteStorage<'a, WantsToMove>,
         Entities<'a>,
@@ -28,8 +29,9 @@ impl<'a> System<'a> for MonsterAI {
             player_entity,
             run_state,
             viewshed,
-            mut pos,
             monster,
+            mut confused,
+            mut pos,
             mut wants_to_melee,
             mut wants_to_move,
             entities,
@@ -40,7 +42,22 @@ impl<'a> System<'a> for MonsterAI {
         }
 
         for (viewshed, pos, _monster, entity) in (&viewshed, &mut pos, &monster, &entities).join() {
-            if viewshed.visible_tiles.contains(&player_pos.pos) {
+            let mut can_act = true;
+
+            let is_confused = confused.get_mut(entity);
+            if let Some(i_am_confused) = is_confused {
+                i_am_confused.turns -= 1;
+                if i_am_confused.turns < 1 {
+                    confused.remove(entity);
+                }
+                can_act = false;
+            }
+
+            if !viewshed.visible_tiles.contains(&player_pos.pos) {
+                can_act = false;
+            }
+
+            if can_act {
                 let distance = DistanceAlg::Pythagoras.distance2d(pos.pos, player_pos.pos);
                 if distance < 1.5 {
                     wants_to_melee

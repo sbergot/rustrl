@@ -137,6 +137,7 @@ fn health_potion(ecs: &mut World, pos: Point) {
             name: "Health Potion".to_string(),
         })
         .with(Item {})
+        .with(Consumable {})
         .with(ProvidesHealing { heal_amount: 8 })
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
@@ -162,14 +163,51 @@ fn magic_missile_scroll(ecs: &mut World, pos: Point) {
         .build();
 }
 
+fn fireball_scroll(ecs: &mut World, pos: Point) {
+    ecs.create_entity()
+        .with(Position{ pos })
+        .with(Renderable{
+            glyph: to_cp437(')'),
+            fg: RGB::named(ORANGE),
+            bg: RGB::named(BLACK),
+            render_order: 2
+        })
+        .with(Name{ name : "Fireball Scroll".to_string() })
+        .with(Item{})
+        .with(Consumable{})
+        .with(Ranged{ range: 6 })
+        .with(InflictsDamage{ damage: 20 })
+        .with(AreaOfEffect{ radius: 3 })
+        .build();
+}
+
+fn confusion_scroll(ecs: &mut World, pos: Point) {
+    ecs.create_entity()
+        .with(Position{ pos })
+        .with(Renderable{
+            glyph: to_cp437(')'),
+            fg: RGB::named(PINK),
+            bg: RGB::named(BLACK),
+            render_order: 2
+        })
+        .with(Name{ name : "Confusion Scroll".to_string() })
+        .with(Item{})
+        .with(Consumable{})
+        .with(Ranged{ range: 6 })
+        .with(Confusion{ turns: 4 })
+        .build();
+}
+
 fn random_item(ecs: &mut World, pos: Point) {
     let roll: i32;
     {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        roll = rng.roll_dice(1, 2);
+        roll = rng.roll_dice(1, 4);
     }
     match roll {
         1 => health_potion(ecs, pos),
+        2 => fireball_scroll(ecs, pos),
+        3 => confusion_scroll(ecs, pos),
         _ => magic_missile_scroll(ecs, pos),
     }
 }
