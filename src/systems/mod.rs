@@ -37,6 +37,7 @@ pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> Dispatcher
         .with(ItemCollectionSystem {}, "item_collection", &[])
         .with(ItemUseSystem {}, "potion_use", &[])
         .with(ItemDropSystem {}, "item_drop", &[])
+        .with(ItemRemoveSystem {}, "item_remove", &[])
         .with(DamageSystem {}, "damage", &["melee_combat"])
         .with(VisibilitySystem {}, "visibility2", &["movement"])
         .with(DeadCollection {}, "dead_collection", &["damage"])

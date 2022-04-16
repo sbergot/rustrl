@@ -12,6 +12,7 @@ use crate::{
 pub enum UiScreen {
     Inventory,
     DropItem,
+    RemoveItem,
     Targeting { range: i32, item: Entity },
 }
 
@@ -19,7 +20,8 @@ pub fn run_screen(ecs: &mut World, ctx: &mut BTerm, screen: UiScreen) -> Option<
     match screen {
         UiScreen::Inventory => (InventoryHandler {}).run_handler(ecs, ctx),
         UiScreen::DropItem => (DropItemHandler {}).run_handler(ecs, ctx),
-        UiScreen::Targeting { range, item } => (TargetingHandler { range, item }).run_handler(ecs, ctx)
+        UiScreen::Targeting { range, item } => (TargetingHandler { range, item }).run_handler(ecs, ctx),
+        UiScreen::RemoveItem => (RemoveItemHandler {}).run_handler(ecs, ctx)
     }
 }
 
@@ -123,6 +125,23 @@ impl UiHandler for TargetingHandler {
                 },
             )
             .expect("Unable to insert intent");
+        RunState::PlayerTurn
+    }
+}
+
+#[derive(PartialEq, Copy, Clone)]
+struct RemoveItemHandler {}
+
+impl UiHandler for RemoveItemHandler {
+    type Output = Entity;
+
+    fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
+        remove_item_menu(ecs, ctx)
+    }
+
+    fn handle(&self, ecs: &mut World, input: Entity) -> RunState {
+        let mut intent = ecs.write_storage::<WantsToRemoveItem>();
+        intent.insert(ecs.fetch::<PlayerEntity>().entity, WantsToRemoveItem{ item: input }).expect("Unable to insert intent");
         RunState::PlayerTurn
     }
 }

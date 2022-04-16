@@ -182,6 +182,21 @@ pub fn drop_item_menu(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Opti
     show_selection(ctx, "Drop Which Item?", &options)
 }
 
+pub fn remove_item_menu(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
+    let player_entity = ecs.fetch::<PlayerEntity>();
+    let names = ecs.read_storage::<Name>();
+    let backpack = ecs.read_storage::<Equipped>();
+    let entities = ecs.entities();
+
+    let options: Vec<(&str, Entity)> = (&entities, &backpack, &names)
+        .join()
+        .filter(|(_entity, pack, _name)| pack.owner == player_entity.entity)
+        .map(|(entity, _pack, name)| (name.name.as_str(), entity))
+        .collect();
+
+    show_selection(ctx, "Remove Which Item?", &options)
+}
+
 pub fn ranged_target(
     ecs: &mut World,
     ctx: &mut BTerm,

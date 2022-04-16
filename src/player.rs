@@ -99,6 +99,8 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
 
             VirtualKeyCode::D => return RunState::ShowUi { screen: UiScreen::DropItem },
 
+            VirtualKeyCode::R => return RunState::ShowUi { screen: UiScreen::RemoveItem },
+
             VirtualKeyCode::Escape => return RunState::SaveGame,
 
             _ => return RunState::AwaitingInput,

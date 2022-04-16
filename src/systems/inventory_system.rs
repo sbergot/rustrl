@@ -295,3 +295,35 @@ impl<'a> System<'a> for ItemDropSystem {
         wants_drop.clear();
     }
 }
+
+pub struct ItemRemoveSystem {}
+
+impl<'a> System<'a> for ItemRemoveSystem {
+    #[allow(clippy::type_complexity)]
+    type SystemData = (
+        Entities<'a>,
+        WriteExpect<'a, GameLog>,
+        ReadStorage<'a, Player>,
+        ReadStorage<'a, Name>,
+        WriteStorage<'a, WantsToRemoveItem>,
+        WriteStorage<'a, Equipped>,
+        WriteStorage<'a, InBackpack>,
+    );
+
+    fn run(&mut self, data: Self::SystemData) {
+        let (entities, mut log, players, names, mut wants_remove, mut equipped, mut backpack) = data;
+
+        for (player, entity, to_remove) in (players.maybe(), &entities, &wants_remove).join() {
+            equipped.remove(to_remove.item);
+            if let Some(_p) = player {
+                let item_name = names.get(to_remove.item).unwrap();
+                log.log(format!("You unequip {}", item_name.name));
+            }
+            backpack
+                .insert(to_remove.item, InBackpack { owner: entity })
+                .expect("Unable to insert backpack");
+        }
+
+        wants_remove.clear();
+    }
+}
