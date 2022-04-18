@@ -2,7 +2,7 @@ use crate::components::*;
 use crate::gamelog::GameLog;
 use crate::gui::gui_handlers::UiScreen;
 use crate::map::Map;
-use crate::state::{RunState, State};
+use crate::state::RunState;
 
 use bracket_lib::prelude::*;
 use specs::prelude::*;

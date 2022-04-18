@@ -35,11 +35,13 @@ pub fn run_screen(ecs: &mut World, ctx: &mut BTerm, screen: UiScreen) -> Option<
 
 trait UiHandler {
     type Output;
-    fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>);
+    fn show(&self, ecs: &mut World, ctx: &mut BTerm);
+    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>);
     fn handle(&self, ecs: &mut World, input: Self::Output) -> RunState;
 
     fn run_handler(&self, ecs: &mut World, ctx: &mut BTerm) -> Option<RunState> {
-        let (menuresult, output) = self.show(ecs, ctx);
+        self.show(ecs, ctx);
+        let (menuresult, output) = self.read_input(ecs, ctx);
         match menuresult {
             ItemMenuResult::Cancel => Some(RunState::AwaitingInput),
             ItemMenuResult::NoResponse => None,
@@ -54,8 +56,12 @@ struct InventoryHandler {}
 impl UiHandler for InventoryHandler {
     type Output = Entity;
 
-    fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
-        show_inventory(ecs, ctx)
+    fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
+        show_inventory(ecs, ctx);
+    }
+
+    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>) {
+        read_input_inventory(ecs, ctx)
     }
 
     fn handle(&self, ecs: &mut World, input: Entity) -> RunState {
@@ -92,8 +98,12 @@ struct DropItemHandler {}
 impl UiHandler for DropItemHandler {
     type Output = Entity;
 
-    fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
+    fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
         drop_item_menu(ecs, ctx)
+    }
+
+    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>) {
+        read_input_inventory(ecs, ctx)
     }
 
     fn handle(&self, ecs: &mut World, input: Entity) -> RunState {
@@ -118,8 +128,12 @@ struct TargetingHandler {
 impl UiHandler for TargetingHandler {
     type Output = Point;
 
-    fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Point>) {
-        ranged_target(ecs, ctx, self.range)
+    fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
+        show_ranged_target(ecs, ctx, self.range)
+    }
+
+    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>) {
+        read_input_ranged_target(ecs, ctx, self.range)
     }
 
     fn handle(&self, ecs: &mut World, input: Point) -> RunState {
@@ -143,8 +157,12 @@ struct RemoveItemHandler {}
 impl UiHandler for RemoveItemHandler {
     type Output = Entity;
 
-    fn show(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
-        remove_item_menu(ecs, ctx)
+    fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
+        show_remove_item_menu(ecs, ctx)
+    }
+
+    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>) {
+        read_input_remove_item_menu(ecs, ctx)
     }
 
     fn handle(&self, ecs: &mut World, input: Entity) -> RunState {

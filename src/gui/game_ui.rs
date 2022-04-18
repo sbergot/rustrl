@@ -9,7 +9,7 @@ use crate::{
     player::{PlayerEntity, PlayerPos},
 };
 
-use super::components::show_selection;
+use super::components::{read_input_selection, show_selection};
 
 pub fn draw_ui(ecs: &World, ctx: &mut BTerm) {
     let map = ecs.read_resource::<Map>();
@@ -152,56 +152,61 @@ pub enum ItemMenuResult {
     Selected,
 }
 
-pub fn show_inventory(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
-    let player_entity = ecs.fetch::<PlayerEntity>();
-    let names = ecs.read_storage::<Name>();
-    let backpack = ecs.read_storage::<InBackpack>();
-    let entities = ecs.entities();
-
-    let options: Vec<(&str, Entity)> = (&backpack, &names, &entities)
-        .join()
-        .filter(|(item, _name, _e)| item.owner == player_entity.entity)
-        .map(|(_i, name, entity)| (name.name.as_str(), entity))
-        .collect();
-
-    show_selection(ctx, "Inventory", &options)
+pub fn show_inventory(ecs: &mut World, ctx: &mut BTerm) {
+    let options = get_inventory_options(ecs);
+    show_selection(ctx, "Inventory", &options);
 }
 
-pub fn drop_item_menu(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
+pub fn read_input_inventory(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
+    let options = get_inventory_options(ecs);
+    read_input_selection(ctx.key, &options)
+}
+
+fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
     let player_entity = ecs.fetch::<PlayerEntity>();
     let names = ecs.read_storage::<Name>();
     let backpack = ecs.read_storage::<InBackpack>();
     let entities = ecs.entities();
-
-    let options: Vec<(&str, Entity)> = (&backpack, &names, &entities)
+    let options: Vec<(String, Entity)> = (&backpack, &names, &entities)
         .join()
         .filter(|(item, _name, _e)| item.owner == player_entity.entity)
-        .map(|(_i, name, entity)| (name.name.as_str(), entity))
+        .map(|(_i, name, entity)| (name.name.clone(), entity))
         .collect();
+    options
+}
 
+pub fn drop_item_menu(ecs: &mut World, ctx: &mut BTerm) {
+    let options = get_inventory_options(ecs);
     show_selection(ctx, "Drop Which Item?", &options)
 }
 
-pub fn remove_item_menu(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
+pub fn show_remove_item_menu(ecs: &mut World, ctx: &mut BTerm) {
+    let options = get_equipped_options(ecs);
+    show_selection(ctx, "Remove Which Item?", &options)
+}
+
+pub fn read_input_remove_item_menu(
+    ecs: &mut World,
+    ctx: &mut BTerm,
+) -> (ItemMenuResult, Option<Entity>) {
+    let options = get_equipped_options(ecs);
+    read_input_selection(ctx.key, &options)
+}
+
+fn get_equipped_options(ecs: &mut World) -> Vec<(String, Entity)> {
     let player_entity = ecs.fetch::<PlayerEntity>();
     let names = ecs.read_storage::<Name>();
     let backpack = ecs.read_storage::<Equipped>();
     let entities = ecs.entities();
-
-    let options: Vec<(&str, Entity)> = (&entities, &backpack, &names)
+    let options: Vec<(String, Entity)> = (&entities, &backpack, &names)
         .join()
         .filter(|(_entity, pack, _name)| pack.owner == player_entity.entity)
-        .map(|(entity, _pack, name)| (name.name.as_str(), entity))
+        .map(|(entity, _pack, name)| (name.name.clone(), entity))
         .collect();
-
-    show_selection(ctx, "Remove Which Item?", &options)
+    options
 }
 
-pub fn ranged_target(
-    ecs: &mut World,
-    ctx: &mut BTerm,
-    range: i32,
-) -> (ItemMenuResult, Option<Point>) {
+pub fn show_ranged_target(ecs: &mut World, ctx: &mut BTerm, range: i32) {
     let player_entity = ecs.fetch::<PlayerEntity>();
     let player_pos = ecs.fetch::<PlayerPos>();
     let viewsheds = ecs.read_storage::<Viewshed>();
@@ -226,6 +231,38 @@ pub fn ranged_target(
                 available_cells.push(tile);
             }
         }
+    }
+
+    // Draw mouse cursor
+    let mouse_pos = ctx.mouse_point();
+    let valid_target = available_cells.iter().any(|c| **c == mouse_pos);
+    if valid_target {
+        ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(CYAN));
+    } else {
+        ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(RED));
+    }
+}
+
+pub fn read_input_ranged_target(
+    ecs: &mut World,
+    ctx: &mut BTerm,
+    range: i32,
+) -> (ItemMenuResult, Option<Point>) {
+    let player_entity = ecs.fetch::<PlayerEntity>();
+    let player_pos = ecs.fetch::<PlayerPos>();
+    let viewsheds = ecs.read_storage::<Viewshed>();
+
+    // Highlight available target cells
+    let mut available_cells = Vec::new();
+    let visible = viewsheds.get(player_entity.entity);
+    if let Some(visible) = visible {
+        // We have a viewshed
+        for tile in visible.visible_tiles.iter() {
+            let distance = DistanceAlg::Pythagoras.distance2d(player_pos.pos, *tile);
+            if distance <= range as f32 {
+                available_cells.push(tile);
+            }
+        }
     } else {
         return (ItemMenuResult::Cancel, None);
     }
@@ -234,14 +271,10 @@ pub fn ranged_target(
     let mouse_pos = ctx.mouse_point();
     let valid_target = available_cells.iter().any(|c| **c == mouse_pos);
 
-    if valid_target {
-        ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(CYAN));
-        if ctx.left_click {
+    if ctx.left_click {
+        if valid_target {
             return (ItemMenuResult::Selected, Some(mouse_pos));
-        }
-    } else {
-        ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(RED));
-        if ctx.left_click {
+        } else {
             return (ItemMenuResult::Cancel, None);
         }
     }
