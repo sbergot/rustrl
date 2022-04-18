@@ -9,8 +9,6 @@ use crate::{
     player::{PlayerEntity, PlayerPos},
 };
 
-use super::components::{read_input_selection, show_selection};
-
 pub fn draw_ui(ecs: &World, ctx: &mut BTerm) {
     let map = ecs.read_resource::<Map>();
     ctx.draw_box(
@@ -165,20 +163,7 @@ pub fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
     options
 }
 
-pub fn show_remove_item_menu(ecs: &mut World, ctx: &mut BTerm) {
-    let options = get_equipped_options(ecs);
-    show_selection(ctx, "Remove Which Item?", &options)
-}
-
-pub fn read_input_remove_item_menu(
-    ecs: &mut World,
-    ctx: &mut BTerm,
-) -> ItemMenuResult<Entity> {
-    let options = get_equipped_options(ecs);
-    read_input_selection(ctx.key, &options)
-}
-
-fn get_equipped_options(ecs: &mut World) -> Vec<(String, Entity)> {
+pub fn get_equipped_options(ecs: &mut World) -> Vec<(String, Entity)> {
     let player_entity = ecs.fetch::<PlayerEntity>();
     let names = ecs.read_storage::<Name>();
     let backpack = ecs.read_storage::<Equipped>();

@@ -1,8 +1,8 @@
-use crate::components::*;
 use crate::gamelog::GameLog;
 use crate::gui::gui_handlers::UiScreen;
 use crate::map::Map;
 use crate::state::RunState;
+use crate::{components::*, input::*};
 
 use bracket_lib::prelude::*;
 use specs::prelude::*;
@@ -16,7 +16,7 @@ pub struct PlayerEntity {
     pub entity: Entity,
 }
 
-fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
+fn try_move_player(direction: Direction, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
     let mut players = ecs.write_storage::<Player>();
     let combat_stats = ecs.read_storage::<CombatStats>();
@@ -25,14 +25,10 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut wants_to_melee = ecs.write_storage::<WantsToMelee>();
     let mut wants_to_move = ecs.write_storage::<WantsToMove>();
 
+    let offset = get_direction_offset(direction);
+
     for (_player, pos, entity) in (&mut players, &mut positions, &entities).join() {
-        let destination_idx = map.xy_idx(
-            pos.pos
-                + Point {
-                    x: delta_x,
-                    y: delta_y,
-                },
-        );
+        let destination_idx = map.xy_idx(pos.pos + offset);
 
         for potential_target in map.entities_tiles[destination_idx].iter() {
             let target = combat_stats.get(*potential_target);
@@ -55,8 +51,8 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
 
         if !map.blocked_tiles[destination_idx] {
             let target = Point {
-                x: min(map.width - 1, max(0, pos.pos.x + delta_x)),
-                y: min(map.height - 1, max(0, pos.pos.y + delta_y)),
+                x: min(map.width - 1, max(0, pos.pos.x + offset.x)),
+                y: min(map.height - 1, max(0, pos.pos.y + offset.y)),
             };
             wants_to_move
                 .insert(entity, WantsToMove { target })
@@ -65,39 +61,8 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     }
 }
 
-pub enum Command {
-    Left,
-    Right,
-    Up,
-    Down,
-    UpLeft,
-    UpRight,
-    DownLeft,
-    DownRight,
-    Grab,
-    ShowInventory,
-    ShowDropItem,
-    ShowRemoveItem,
-    SaveQuit,
-}
-
 fn map_key(key: VirtualKeyCode) -> Option<Command> {
-    match key {
-        VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::H => Some(Command::Left),
-        VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::L => Some(Command::Right),
-        VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::K => Some(Command::Up),
-        VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::J => Some(Command::Down),
-        VirtualKeyCode::Y => Some(Command::UpLeft),
-        VirtualKeyCode::U => Some(Command::UpRight),
-        VirtualKeyCode::B => Some(Command::DownLeft),
-        VirtualKeyCode::N => Some(Command::DownRight),
-        VirtualKeyCode::G => Some(Command::Grab),
-        VirtualKeyCode::I => Some(Command::ShowInventory),
-        VirtualKeyCode::D => Some(Command::ShowDropItem),
-        VirtualKeyCode::R => Some(Command::ShowRemoveItem),
-        VirtualKeyCode::Escape => Some(Command::SaveQuit),
-        _ => None,
-    }
+    map_direction(key).or(map_other_commands(key))
 }
 
 pub fn player_input(world: &mut World, key: Option<VirtualKeyCode>) -> RunState {
@@ -105,14 +70,7 @@ pub fn player_input(world: &mut World, key: Option<VirtualKeyCode>) -> RunState 
     match cmd {
         None => return RunState::AwaitingInput,
         Some(command) => match command {
-            Command::Left => try_move_player(-1, 0, world),
-            Command::Right => try_move_player(1, 0, world),
-            Command::Up => try_move_player(0, -1, world),
-            Command::Down => try_move_player(0, 1, world),
-            Command::UpLeft => try_move_player(-1, -1, world),
-            Command::UpRight => try_move_player(1, -1, world),
-            Command::DownLeft => try_move_player(-1, 1, world),
-            Command::DownRight => try_move_player(1, 1, world),
+            Command::Direction { direction } => try_move_player(direction, world),
             Command::Grab => grab_item(world),
             Command::ShowInventory => {
                 return RunState::ShowUi {

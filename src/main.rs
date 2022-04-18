@@ -2,12 +2,13 @@ mod components;
 mod constants;
 mod gamelog;
 mod gui;
+mod input;
 mod map;
 mod player;
+mod points_of_interest;
 mod spawner;
 mod state;
 mod systems;
-mod points_of_interest;
 
 use bracket_lib::prelude::{main_loop, BError, BTermBuilder};
 use constants::*;

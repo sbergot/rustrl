@@ -203,11 +203,13 @@ impl UiHandler for RemoveItemHandler {
     type Output = Entity;
 
     fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
-        show_remove_item_menu(ecs, ctx)
+        let options = get_equipped_options(ecs);
+        show_selection(ctx, "Remove Which Item?", &options)
     }
 
     fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
-        read_input_remove_item_menu(ecs, ctx)
+        let options = get_equipped_options(ecs);
+        read_input_selection(ctx.key, &options)
     }
 
     fn handle(&self, ecs: &mut World, input: Entity) -> RunState {
