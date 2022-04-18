@@ -146,23 +146,13 @@ fn draw_tooltips(ecs: &World, ctx: &mut BTerm) {
 }
 
 #[derive(PartialEq, Copy, Clone)]
-pub enum ItemMenuResult {
+pub enum ItemMenuResult<T> {
     Cancel,
     NoResponse,
-    Selected,
+    Selected { result: T },
 }
 
-pub fn show_inventory(ecs: &mut World, ctx: &mut BTerm) {
-    let options = get_inventory_options(ecs);
-    show_selection(ctx, "Inventory", &options);
-}
-
-pub fn read_input_inventory(ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
-    let options = get_inventory_options(ecs);
-    read_input_selection(ctx.key, &options)
-}
-
-fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
+pub fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
     let player_entity = ecs.fetch::<PlayerEntity>();
     let names = ecs.read_storage::<Name>();
     let backpack = ecs.read_storage::<InBackpack>();
@@ -175,11 +165,6 @@ fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
     options
 }
 
-pub fn drop_item_menu(ecs: &mut World, ctx: &mut BTerm) {
-    let options = get_inventory_options(ecs);
-    show_selection(ctx, "Drop Which Item?", &options)
-}
-
 pub fn show_remove_item_menu(ecs: &mut World, ctx: &mut BTerm) {
     let options = get_equipped_options(ecs);
     show_selection(ctx, "Remove Which Item?", &options)
@@ -188,7 +173,7 @@ pub fn show_remove_item_menu(ecs: &mut World, ctx: &mut BTerm) {
 pub fn read_input_remove_item_menu(
     ecs: &mut World,
     ctx: &mut BTerm,
-) -> (ItemMenuResult, Option<Entity>) {
+) -> ItemMenuResult<Entity> {
     let options = get_equipped_options(ecs);
     read_input_selection(ctx.key, &options)
 }
@@ -206,19 +191,10 @@ fn get_equipped_options(ecs: &mut World) -> Vec<(String, Entity)> {
     options
 }
 
-pub fn show_ranged_target(ecs: &mut World, ctx: &mut BTerm, range: i32) {
+pub fn get_cells_in_range(ecs: &mut World, range: i32) -> Vec<Point> {
     let player_entity = ecs.fetch::<PlayerEntity>();
     let player_pos = ecs.fetch::<PlayerPos>();
     let viewsheds = ecs.read_storage::<Viewshed>();
-
-    ctx.print_color(
-        5,
-        0,
-        RGB::named(YELLOW),
-        RGB::named(BLACK),
-        "Select Target:",
-    );
-
     // Highlight available target cells
     let mut available_cells = Vec::new();
     let visible = viewsheds.get(player_entity.entity);
@@ -227,57 +203,10 @@ pub fn show_ranged_target(ecs: &mut World, ctx: &mut BTerm, range: i32) {
         for tile in visible.visible_tiles.iter() {
             let distance = DistanceAlg::Pythagoras.distance2d(player_pos.pos, *tile);
             if distance <= range as f32 {
-                ctx.set_bg(tile.x, tile.y, RGB::named(BLUE));
-                available_cells.push(tile);
+                available_cells.push(*tile);
             }
         }
     }
-
-    // Draw mouse cursor
-    let mouse_pos = ctx.mouse_point();
-    let valid_target = available_cells.iter().any(|c| **c == mouse_pos);
-    if valid_target {
-        ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(CYAN));
-    } else {
-        ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(RED));
-    }
+    available_cells
 }
 
-pub fn read_input_ranged_target(
-    ecs: &mut World,
-    ctx: &mut BTerm,
-    range: i32,
-) -> (ItemMenuResult, Option<Point>) {
-    let player_entity = ecs.fetch::<PlayerEntity>();
-    let player_pos = ecs.fetch::<PlayerPos>();
-    let viewsheds = ecs.read_storage::<Viewshed>();
-
-    // Highlight available target cells
-    let mut available_cells = Vec::new();
-    let visible = viewsheds.get(player_entity.entity);
-    if let Some(visible) = visible {
-        // We have a viewshed
-        for tile in visible.visible_tiles.iter() {
-            let distance = DistanceAlg::Pythagoras.distance2d(player_pos.pos, *tile);
-            if distance <= range as f32 {
-                available_cells.push(tile);
-            }
-        }
-    } else {
-        return (ItemMenuResult::Cancel, None);
-    }
-
-    // Draw mouse cursor
-    let mouse_pos = ctx.mouse_point();
-    let valid_target = available_cells.iter().any(|c| **c == mouse_pos);
-
-    if ctx.left_click {
-        if valid_target {
-            return (ItemMenuResult::Selected, Some(mouse_pos));
-        } else {
-            return (ItemMenuResult::Cancel, None);
-        }
-    }
-
-    (ItemMenuResult::NoResponse, None)
-}

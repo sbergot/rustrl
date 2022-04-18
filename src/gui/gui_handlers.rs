@@ -1,7 +1,12 @@
-use bracket_lib::prelude::{BTerm, Point};
+use bracket_lib::prelude::*;
 use specs::*;
 
-use crate::{components::*, gui::game_ui::*, player::{PlayerEntity, PlayerPos}, state::RunState};
+use crate::{
+    components::*,
+    gui::{components::*, game_ui::*},
+    player::{PlayerEntity, PlayerPos},
+    state::RunState,
+};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum UiScreen {
@@ -35,17 +40,20 @@ pub fn run_screen(ecs: &mut World, ctx: &mut BTerm, screen: UiScreen) -> Option<
 
 trait UiHandler {
     type Output;
+
     fn show(&self, ecs: &mut World, ctx: &mut BTerm);
-    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>);
+
+    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output>;
+
     fn handle(&self, ecs: &mut World, input: Self::Output) -> RunState;
 
     fn run_handler(&self, ecs: &mut World, ctx: &mut BTerm) -> Option<RunState> {
         self.show(ecs, ctx);
-        let (menuresult, output) = self.read_input(ecs, ctx);
+        let menuresult = self.read_input(ecs, ctx);
         match menuresult {
             ItemMenuResult::Cancel => Some(RunState::AwaitingInput),
             ItemMenuResult::NoResponse => None,
-            ItemMenuResult::Selected => Some(self.handle(ecs, output.unwrap())),
+            ItemMenuResult::Selected { result } => Some(self.handle(ecs, result)),
         }
     }
 }
@@ -57,11 +65,13 @@ impl UiHandler for InventoryHandler {
     type Output = Entity;
 
     fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
-        show_inventory(ecs, ctx);
+        let options = get_inventory_options(ecs);
+        show_selection(ctx, "Inventory", &options);
     }
 
-    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>) {
-        read_input_inventory(ecs, ctx)
+    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
+        let options = get_inventory_options(ecs);
+        read_input_selection(ctx.key, &options)
     }
 
     fn handle(&self, ecs: &mut World, input: Entity) -> RunState {
@@ -99,11 +109,13 @@ impl UiHandler for DropItemHandler {
     type Output = Entity;
 
     fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
-        drop_item_menu(ecs, ctx)
+        let options = get_inventory_options(ecs);
+        show_selection(ctx, "Drop Which Item?", &options)
     }
 
-    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>) {
-        read_input_inventory(ecs, ctx)
+    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
+        let options = get_inventory_options(ecs);
+        read_input_selection(ctx.key, &options)
     }
 
     fn handle(&self, ecs: &mut World, input: Entity) -> RunState {
@@ -129,11 +141,44 @@ impl UiHandler for TargetingHandler {
     type Output = Point;
 
     fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
-        show_ranged_target(ecs, ctx, self.range)
+        ctx.print_color(
+            5,
+            0,
+            RGB::named(YELLOW),
+            RGB::named(BLACK),
+            "Select Target:",
+        );
+
+        let available_cells = get_cells_in_range(ecs, self.range);
+
+        for tile in available_cells.iter() {
+            ctx.set_bg(tile.x, tile.y, RGB::named(BLUE));
+        }
+
+        // Draw mouse cursor
+        let mouse_pos = ctx.mouse_point();
+        let valid_target = available_cells.contains(&mouse_pos);
+        if valid_target {
+            ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(CYAN));
+        } else {
+            ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(RED));
+        }
     }
 
-    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>) {
-        read_input_ranged_target(ecs, ctx, self.range)
+    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
+        let available_cells = get_cells_in_range(ecs, self.range);
+
+        let mouse_pos = ctx.mouse_point();
+        let valid_target = available_cells.contains(&mouse_pos);
+        if ctx.left_click {
+            if valid_target {
+                return ItemMenuResult::Selected { result: mouse_pos };
+            } else {
+                return ItemMenuResult::Cancel;
+            }
+        }
+
+        ItemMenuResult::NoResponse
     }
 
     fn handle(&self, ecs: &mut World, input: Point) -> RunState {
@@ -161,7 +206,7 @@ impl UiHandler for RemoveItemHandler {
         show_remove_item_menu(ecs, ctx)
     }
 
-    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> (ItemMenuResult, Option<Self::Output>) {
+    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
         read_input_remove_item_menu(ecs, ctx)
     }
 
