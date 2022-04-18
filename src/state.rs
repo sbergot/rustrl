@@ -12,6 +12,7 @@ use crate::map::Map;
 use crate::player;
 use crate::player::PlayerEntity;
 use crate::player::PlayerPos;
+use crate::points_of_interest::PointsOfInterest;
 use crate::spawner;
 use crate::systems::*;
 
@@ -22,9 +23,11 @@ pub enum RunState {
     PlayerTurn,
     MonsterTurn,
     ShowUi { screen: UiScreen },
-    MainMenu { menu_selection : MainMenuSelection },
+    MainMenu { menu_selection: MainMenuSelection },
     SaveGame,
 }
+
+pub struct Selection(Option<Point>);
 
 pub struct State<'a, 'b> {
     pub ecs: World,
@@ -63,7 +66,7 @@ impl GameState for State<'static, 'static> {
         }
 
         match newrunstate {
-            RunState::MainMenu {..} => {}
+            RunState::MainMenu { .. } => {}
             _ => {
                 Map::draw_map(&self.ecs, ctx);
                 self.draw_renderables(ctx);
@@ -76,7 +79,7 @@ impl GameState for State<'static, 'static> {
                 newrunstate = RunState::AwaitingInput;
             }
             RunState::AwaitingInput => {
-                newrunstate = player::player_input(self, ctx);
+                newrunstate = player::player_input(&mut self.ecs, ctx.key);
             }
             RunState::PlayerTurn => {
                 self.run_systems();
@@ -91,27 +94,33 @@ impl GameState for State<'static, 'static> {
                 if let Some(newstate) = res {
                     newrunstate = newstate;
                 }
-            },
-            RunState::MainMenu {..} => {
+            }
+            RunState::MainMenu { .. } => {
                 let result = main_menu(self, ctx);
                 match result {
-                    MainMenuResult::NoSelection{ selected } => newrunstate = RunState::MainMenu{ menu_selection: selected },
-                    MainMenuResult::Selected{ selected } => {
-                        match selected {
-                            MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
-                            MainMenuSelection::LoadGame => {
-                                load_game(&mut self.ecs);
-                                newrunstate = RunState::AwaitingInput;
-                            }
-                            MainMenuSelection::Quit => { ::std::process::exit(0); }
+                    MainMenuResult::NoSelection { selected } => {
+                        newrunstate = RunState::MainMenu {
+                            menu_selection: selected,
                         }
                     }
+                    MainMenuResult::Selected { selected } => match selected {
+                        MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
+                        MainMenuSelection::LoadGame => {
+                            load_game(&mut self.ecs);
+                            newrunstate = RunState::AwaitingInput;
+                        }
+                        MainMenuSelection::Quit => {
+                            ::std::process::exit(0);
+                        }
+                    },
                 }
-            },
+            }
             RunState::SaveGame => {
                 save_game(&mut self.ecs);
 
-                newrunstate = RunState::MainMenu{ menu_selection : MainMenuSelection::LoadGame };
+                newrunstate = RunState::MainMenu {
+                    menu_selection: MainMenuSelection::LoadGame,
+                };
             }
         }
 
@@ -146,7 +155,9 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
 
     let (rooms, map) = map::Map::new_map_rooms_and_corridors(width, height);
     gs.ecs.insert(map);
-    gs.ecs.insert(RunState::MainMenu { menu_selection: MainMenuSelection::NewGame });
+    gs.ecs.insert(RunState::MainMenu {
+        menu_selection: MainMenuSelection::NewGame,
+    });
     gs.ecs.insert(GameLog {
         entries: vec!["Welcome to Rusty Roguelike".to_string()],
     });
@@ -160,6 +171,9 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
     });
 
     gs.ecs.insert(PlayerPos { pos: room_center });
+
+    gs.ecs.insert(Selection(None));
+    gs.ecs.insert(PointsOfInterest::new());
 
     for room in rooms.iter().skip(1) {
         spawner::spawn_room(&mut gs.ecs, room);

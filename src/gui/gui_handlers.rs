@@ -1,30 +1,37 @@
 use bracket_lib::prelude::{BTerm, Point};
 use specs::*;
 
-use crate::{
-    components::*,
-    gui::game_ui::*,
-    player::PlayerEntity,
-    state::RunState,
-};
+use crate::{components::*, gui::game_ui::*, player::{PlayerEntity, PlayerPos}, state::RunState};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum UiScreen {
     Inventory,
     DropItem,
     RemoveItem,
-    Targeting { range: i32, item: Entity },
+    Targeting {
+        range: i32,
+        item: Entity,
+        selection: Point,
+    },
 }
 
 pub fn run_screen(ecs: &mut World, ctx: &mut BTerm, screen: UiScreen) -> Option<RunState> {
     match screen {
         UiScreen::Inventory => (InventoryHandler {}).run_handler(ecs, ctx),
         UiScreen::DropItem => (DropItemHandler {}).run_handler(ecs, ctx),
-        UiScreen::Targeting { range, item } => (TargetingHandler { range, item }).run_handler(ecs, ctx),
-        UiScreen::RemoveItem => (RemoveItemHandler {}).run_handler(ecs, ctx)
+        UiScreen::Targeting {
+            range,
+            item,
+            selection,
+        } => (TargetingHandler {
+            range,
+            item,
+            selection,
+        })
+        .run_handler(ecs, ctx),
+        UiScreen::RemoveItem => (RemoveItemHandler {}).run_handler(ecs, ctx),
     }
 }
-
 
 trait UiHandler {
     type Output;
@@ -34,11 +41,9 @@ trait UiHandler {
     fn run_handler(&self, ecs: &mut World, ctx: &mut BTerm) -> Option<RunState> {
         let (menuresult, output) = self.show(ecs, ctx);
         match menuresult {
-                ItemMenuResult::Cancel => Some(RunState::AwaitingInput),
-                ItemMenuResult::NoResponse => None,
-                ItemMenuResult::Selected => {
-                Some(self.handle(ecs, output.unwrap()))
-            }
+            ItemMenuResult::Cancel => Some(RunState::AwaitingInput),
+            ItemMenuResult::NoResponse => None,
+            ItemMenuResult::Selected => Some(self.handle(ecs, output.unwrap())),
         }
     }
 }
@@ -57,10 +62,12 @@ impl UiHandler for InventoryHandler {
         let is_ranged = ecs.read_storage::<Ranged>();
         let is_item_ranged = is_ranged.get(input);
         if let Some(is_item_ranged) = is_item_ranged {
+            let player_pos = ecs.read_resource::<PlayerPos>();
             RunState::ShowUi {
                 screen: UiScreen::Targeting {
                     range: is_item_ranged.range,
                     item: input,
+                    selection: player_pos.pos,
                 },
             }
         } else {
@@ -105,6 +112,7 @@ impl UiHandler for DropItemHandler {
 struct TargetingHandler {
     range: i32,
     item: Entity,
+    selection: Point,
 }
 
 impl UiHandler for TargetingHandler {
@@ -141,7 +149,12 @@ impl UiHandler for RemoveItemHandler {
 
     fn handle(&self, ecs: &mut World, input: Entity) -> RunState {
         let mut intent = ecs.write_storage::<WantsToRemoveItem>();
-        intent.insert(ecs.fetch::<PlayerEntity>().entity, WantsToRemoveItem{ item: input }).expect("Unable to insert intent");
+        intent
+            .insert(
+                ecs.fetch::<PlayerEntity>().entity,
+                WantsToRemoveItem { item: input },
+            )
+            .expect("Unable to insert intent");
         RunState::PlayerTurn
     }
 }

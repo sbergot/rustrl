@@ -7,6 +7,7 @@ mod player;
 mod spawner;
 mod state;
 mod systems;
+mod points_of_interest;
 
 use bracket_lib::prelude::{main_loop, BError, BTermBuilder};
 use constants::*;

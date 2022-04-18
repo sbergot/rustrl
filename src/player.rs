@@ -1,8 +1,8 @@
 use crate::components::*;
 use crate::gamelog::GameLog;
+use crate::gui::gui_handlers::UiScreen;
 use crate::map::Map;
 use crate::state::{RunState, State};
-use crate::gui::gui_handlers::UiScreen;
 
 use bracket_lib::prelude::*;
 use specs::prelude::*;
@@ -65,51 +65,77 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     }
 }
 
-pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
-    match ctx.key {
-        None => return RunState::AwaitingInput, // Nothing happened
-        Some(key) => match key {
-            VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::H => {
-                try_move_player(-1, 0, &mut gs.ecs)
+pub enum Command {
+    Left,
+    Right,
+    Up,
+    Down,
+    UpLeft,
+    UpRight,
+    DownLeft,
+    DownRight,
+    Grab,
+    ShowInventory,
+    ShowDropItem,
+    ShowRemoveItem,
+    SaveQuit,
+}
+
+fn map_key(key: VirtualKeyCode) -> Option<Command> {
+    match key {
+        VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::H => Some(Command::Left),
+        VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::L => Some(Command::Right),
+        VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::K => Some(Command::Up),
+        VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::J => Some(Command::Down),
+        VirtualKeyCode::Y => Some(Command::UpLeft),
+        VirtualKeyCode::U => Some(Command::UpRight),
+        VirtualKeyCode::B => Some(Command::DownLeft),
+        VirtualKeyCode::N => Some(Command::DownRight),
+        VirtualKeyCode::G => Some(Command::Grab),
+        VirtualKeyCode::I => Some(Command::ShowInventory),
+        VirtualKeyCode::D => Some(Command::ShowDropItem),
+        VirtualKeyCode::R => Some(Command::ShowRemoveItem),
+        VirtualKeyCode::Escape => Some(Command::SaveQuit),
+        _ => None,
+    }
+}
+
+pub fn player_input(world: &mut World, key: Option<VirtualKeyCode>) -> RunState {
+    let cmd = key.and_then(map_key);
+    match cmd {
+        None => return RunState::AwaitingInput,
+        Some(command) => match command {
+            Command::Left => try_move_player(-1, 0, world),
+            Command::Right => try_move_player(1, 0, world),
+            Command::Up => try_move_player(0, -1, world),
+            Command::Down => try_move_player(0, 1, world),
+            Command::UpLeft => try_move_player(-1, -1, world),
+            Command::UpRight => try_move_player(1, -1, world),
+            Command::DownLeft => try_move_player(-1, 1, world),
+            Command::DownRight => try_move_player(1, 1, world),
+            Command::Grab => grab_item(world),
+            Command::ShowInventory => {
+                return RunState::ShowUi {
+                    screen: UiScreen::Inventory,
+                }
             }
-
-            VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::L => {
-                try_move_player(1, 0, &mut gs.ecs)
+            Command::ShowDropItem => {
+                return RunState::ShowUi {
+                    screen: UiScreen::DropItem,
+                }
             }
-
-            VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::K => {
-                try_move_player(0, -1, &mut gs.ecs)
+            Command::ShowRemoveItem => {
+                return RunState::ShowUi {
+                    screen: UiScreen::RemoveItem,
+                }
             }
-
-            VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::J => {
-                try_move_player(0, 1, &mut gs.ecs)
-            }
-
-            VirtualKeyCode::Y => try_move_player(-1, -1, &mut gs.ecs),
-
-            VirtualKeyCode::U => try_move_player(1, -1, &mut gs.ecs),
-
-            VirtualKeyCode::B => try_move_player(-1, 1, &mut gs.ecs),
-
-            VirtualKeyCode::N => try_move_player(1, 1, &mut gs.ecs),
-
-            VirtualKeyCode::G => get_item(&mut gs.ecs),
-
-            VirtualKeyCode::I => return RunState::ShowUi { screen: UiScreen::Inventory },
-
-            VirtualKeyCode::D => return RunState::ShowUi { screen: UiScreen::DropItem },
-
-            VirtualKeyCode::R => return RunState::ShowUi { screen: UiScreen::RemoveItem },
-
-            VirtualKeyCode::Escape => return RunState::SaveGame,
-
-            _ => return RunState::AwaitingInput,
+            Command::SaveQuit => return RunState::SaveGame,
         },
     }
     RunState::PlayerTurn
 }
 
-fn get_item(ecs: &mut World) {
+fn grab_item(ecs: &mut World) {
     let player_pos = ecs.fetch::<PlayerPos>();
     let player_entity = ecs.fetch::<PlayerEntity>();
     let entities = ecs.entities();

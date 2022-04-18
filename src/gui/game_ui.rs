@@ -219,11 +219,11 @@ pub fn ranged_target(
     let visible = viewsheds.get(player_entity.entity);
     if let Some(visible) = visible {
         // We have a viewshed
-        for idx in visible.visible_tiles.iter() {
-            let distance = DistanceAlg::Pythagoras.distance2d(player_pos.pos, *idx);
+        for tile in visible.visible_tiles.iter() {
+            let distance = DistanceAlg::Pythagoras.distance2d(player_pos.pos, *tile);
             if distance <= range as f32 {
-                ctx.set_bg(idx.x, idx.y, RGB::named(BLUE));
-                available_cells.push(idx);
+                ctx.set_bg(tile.x, tile.y, RGB::named(BLUE));
+                available_cells.push(tile);
             }
         }
     } else {

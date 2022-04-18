@@ -3,7 +3,7 @@ use specs::prelude::*;
 
 use crate::{
     components::{Player, Position, Viewshed},
-    map::Map,
+    map::Map, points_of_interest::PointsOfInterest,
 };
 
 pub struct VisibilitySystem {}
@@ -11,13 +11,15 @@ pub struct VisibilitySystem {}
 impl<'a> System<'a> for VisibilitySystem {
     type SystemData = (
         WriteExpect<'a, Map>,
+        WriteExpect<'a, PointsOfInterest>,
         WriteStorage<'a, Viewshed>,
         WriteStorage<'a, Position>,
         ReadStorage<'a, Player>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (mut map, mut viewshed, pos, players) = data;
+        let (mut map, mut poi, mut viewshed, pos, players) = data;
+        poi.clear();
         for (player, viewshed, pos) in (players.maybe(), &mut viewshed, &pos).join() {
             if viewshed.dirty {
                 viewshed.visible_tiles.clear();
@@ -35,6 +37,9 @@ impl<'a> System<'a> for VisibilitySystem {
                         let idx = map.xy_idx(*vis);
                         map.revealed_tiles[idx] = true;
                         map.visible_tiles[idx] = true;
+                        if !map.entities_tiles[idx].is_empty() {
+                            poi.add(*vis)
+                        }
                     }
                 }
                 viewshed.dirty = false;
