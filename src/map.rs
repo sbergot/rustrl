@@ -234,8 +234,8 @@ impl Map {
     
 
     pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
-        let map = ecs.fetch::<Map>();
-        let poi = ecs.fetch::<PointsOfInterest>();
+        let map = ecs.read_resource::<Map>();
+        let poi = ecs.read_resource::<PointsOfInterest>();
 
         let mut y = 0;
         let mut x = 0;

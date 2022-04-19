@@ -1,4 +1,5 @@
 use bracket_lib::prelude::*;
+use specs::WorldExt;
 
 use crate::state::*;
 use crate::systems::does_save_exist;
@@ -18,7 +19,7 @@ pub enum MainMenuResult {
 
 pub fn main_menu(gs : &mut State, ctx : &mut BTerm) -> MainMenuResult {
     let save_exists = does_save_exist();
-    let runstate = gs.ecs.fetch::<RunState>();
+    let runstate = gs.ecs.read_resource::<RunState>();
 
     ctx.print_color_centered(15, RGB::named(YELLOW), RGB::named(BLACK), "Rust Roguelike Tutorial");
 

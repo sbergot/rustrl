@@ -43,7 +43,7 @@ impl<'a, 'b> State<'a, 'b> {
     fn draw_renderables(&mut self, ctx: &mut BTerm) {
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
-        let map = self.ecs.fetch::<Map>();
+        let map = self.ecs.read_resource::<Map>();
         let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
         data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
         for (pos, render) in data {
@@ -61,7 +61,7 @@ impl GameState for State<'static, 'static> {
 
         let mut newrunstate;
         {
-            let runstate = self.ecs.fetch::<RunState>();
+            let runstate = self.ecs.read_resource::<RunState>();
             newrunstate = *runstate;
         }
 

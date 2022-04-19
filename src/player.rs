@@ -20,7 +20,7 @@ fn try_move_player(direction: Direction, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
     let mut players = ecs.write_storage::<Player>();
     let combat_stats = ecs.read_storage::<CombatStats>();
-    let map = ecs.fetch::<Map>();
+    let map = ecs.read_resource::<Map>();
     let entities = ecs.entities();
     let mut wants_to_melee = ecs.write_storage::<WantsToMelee>();
     let mut wants_to_move = ecs.write_storage::<WantsToMove>();
@@ -83,6 +83,12 @@ pub fn player_input(world: &mut World, key: Option<VirtualKeyCode>) -> RunState 
                     screen: UiScreen::RemoveItem,
                 }
             }
+            Command::ExamineMode => {
+                let player_pos = world.read_resource::<PlayerPos>();
+                return RunState::ShowUi {
+                    screen: UiScreen::Examine { selection: player_pos.pos },
+                }
+            }
             Command::SaveQuit => return RunState::SaveGame,
             _ => {},
         },
@@ -91,8 +97,8 @@ pub fn player_input(world: &mut World, key: Option<VirtualKeyCode>) -> RunState 
 }
 
 fn grab_item(ecs: &mut World) {
-    let player_pos = ecs.fetch::<PlayerPos>();
-    let player_entity = ecs.fetch::<PlayerEntity>();
+    let player_pos = ecs.read_resource::<PlayerPos>();
+    let player_entity = ecs.read_resource::<PlayerEntity>();
     let entities = ecs.entities();
     let items = ecs.read_storage::<Item>();
     let positions = ecs.read_storage::<Position>();

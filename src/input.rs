@@ -7,6 +7,7 @@ pub enum Command {
     ShowInventory,
     ShowDropItem,
     ShowRemoveItem,
+    ExamineMode,
     SaveQuit,
     Validate,
     Cancel,
@@ -78,6 +79,7 @@ pub fn map_other_commands(key: VirtualKeyCode) -> Option<Command> {
         VirtualKeyCode::I => Some(Command::ShowInventory),
         VirtualKeyCode::D => Some(Command::ShowDropItem),
         VirtualKeyCode::R => Some(Command::ShowRemoveItem),
+        VirtualKeyCode::X => Some(Command::ExamineMode),
         VirtualKeyCode::Escape => Some(Command::SaveQuit),
         _ => None,
     }

@@ -43,7 +43,7 @@ pub fn draw_ui(ecs: &World, ctx: &mut BTerm) {
         );
     }
 
-    let log = ecs.fetch::<GameLog>();
+    let log = ecs.read_resource::<GameLog>();
 
     let mut y = map.height + 1;
     let max_y = map.height + UI_HEIGHT - 2;
@@ -59,22 +59,21 @@ pub fn draw_ui(ecs: &World, ctx: &mut BTerm) {
 
     let mouse_pos = ctx.mouse_pos();
     ctx.set_bg(mouse_pos.0, mouse_pos.1, RGB::named(MAGENTA));
-    draw_tooltips(ecs, ctx);
 }
 
-fn draw_tooltips(ecs: &World, ctx: &mut BTerm) {
-    let map = ecs.fetch::<Map>();
+pub fn draw_tooltips(ecs: &World, ctx: &mut BTerm, pos: Point) {
+    let map = ecs.read_resource::<Map>();
     let names = ecs.read_storage::<Name>();
     let positions = ecs.read_storage::<Position>();
 
-    let mouse_pos = ctx.mouse_pos();
-    if mouse_pos.0 >= map.width || mouse_pos.1 >= map.height {
+    let mouse_pos = pos;
+    if mouse_pos.x >= map.width || mouse_pos.y >= map.height {
         return;
     }
     let mut tooltip: Vec<String> = Vec::new();
     for (name, position) in (&names, &positions).join() {
         let idx = map.xy_idx(position.pos);
-        if position.pos.x == mouse_pos.0 && position.pos.y == mouse_pos.1 && map.visible_tiles[idx]
+        if position.pos.x == mouse_pos.x && position.pos.y == mouse_pos.y && map.visible_tiles[idx]
         {
             tooltip.push(name.name.to_string());
         }
@@ -89,10 +88,10 @@ fn draw_tooltips(ecs: &World, ctx: &mut BTerm) {
         }
         width += 3;
 
-        if mouse_pos.0 > 40 {
-            let arrow_pos = Point::new(mouse_pos.0 - 2, mouse_pos.1);
-            let left_x = mouse_pos.0 - width;
-            let mut y = mouse_pos.1;
+        if mouse_pos.x > 40 {
+            let arrow_pos = Point::new(mouse_pos.x - 2, mouse_pos.y);
+            let left_x = mouse_pos.x - width;
+            let mut y = mouse_pos.y;
             for s in tooltip.iter() {
                 ctx.print_color(left_x, y, RGB::named(WHITE), RGB::named(GREY), s);
                 let padding = (width - s.len() as i32) - 1;
@@ -115,9 +114,9 @@ fn draw_tooltips(ecs: &World, ctx: &mut BTerm) {
                 &"->".to_string(),
             );
         } else {
-            let arrow_pos = Point::new(mouse_pos.0 + 1, mouse_pos.1);
-            let left_x = mouse_pos.0 + 3;
-            let mut y = mouse_pos.1;
+            let arrow_pos = Point::new(mouse_pos.x + 1, mouse_pos.y);
+            let left_x = mouse_pos.x + 3;
+            let mut y = mouse_pos.y;
             for s in tooltip.iter() {
                 ctx.print_color(left_x + 1, y, RGB::named(WHITE), RGB::named(GREY), s);
                 let padding = (width - s.len() as i32) - 1;
@@ -151,7 +150,7 @@ pub enum ItemMenuResult<T> {
 }
 
 pub fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
-    let player_entity = ecs.fetch::<PlayerEntity>();
+    let player_entity = ecs.read_resource::<PlayerEntity>();
     let names = ecs.read_storage::<Name>();
     let backpack = ecs.read_storage::<InBackpack>();
     let entities = ecs.entities();
@@ -164,7 +163,7 @@ pub fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
 }
 
 pub fn get_equipped_options(ecs: &mut World) -> Vec<(String, Entity)> {
-    let player_entity = ecs.fetch::<PlayerEntity>();
+    let player_entity = ecs.read_resource::<PlayerEntity>();
     let names = ecs.read_storage::<Name>();
     let backpack = ecs.read_storage::<Equipped>();
     let entities = ecs.entities();
@@ -177,8 +176,8 @@ pub fn get_equipped_options(ecs: &mut World) -> Vec<(String, Entity)> {
 }
 
 pub fn get_cells_in_range(ecs: &mut World, range: i32) -> Vec<Point> {
-    let player_entity = ecs.fetch::<PlayerEntity>();
-    let player_pos = ecs.fetch::<PlayerPos>();
+    let player_entity = ecs.read_resource::<PlayerEntity>();
+    let player_pos = ecs.read_resource::<PlayerPos>();
     let viewsheds = ecs.read_storage::<Viewshed>();
     // Highlight available target cells
     let mut available_cells = Vec::new();

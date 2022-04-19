@@ -6,7 +6,8 @@ use crate::{
     gui::{components::*, game_ui::*},
     input::*,
     player::{PlayerEntity, PlayerPos},
-    state::RunState, points_of_interest::PointsOfInterest,
+    points_of_interest::PointsOfInterest,
+    state::RunState,
 };
 
 #[derive(PartialEq, Copy, Clone)]
@@ -17,6 +18,9 @@ pub enum UiScreen {
     Targeting {
         range: i32,
         item: Entity,
+        selection: Point,
+    },
+    Examine {
         selection: Point,
     },
 }
@@ -36,6 +40,7 @@ pub fn run_screen(ecs: &mut World, ctx: &mut BTerm, screen: UiScreen) -> Option<
         })
         .run_handler(ecs, ctx),
         UiScreen::RemoveItem => (RemoveItemHandler {}).run_handler(ecs, ctx),
+        UiScreen::Examine { selection } => (ExamineHandler { selection }).run_handler(ecs, ctx),
     }
 }
 
@@ -91,7 +96,7 @@ impl UiHandler for InventoryHandler {
             let mut intent = ecs.write_storage::<WantsToUseItem>();
             intent
                 .insert(
-                    ecs.fetch::<PlayerEntity>().entity,
+                    ecs.read_resource::<PlayerEntity>().entity,
                     WantsToUseItem {
                         item: input,
                         target: None,
@@ -123,7 +128,7 @@ impl UiHandler for DropItemHandler {
         let mut intent = ecs.write_storage::<WantsToDropItem>();
         intent
             .insert(
-                ecs.fetch::<PlayerEntity>().entity,
+                ecs.read_resource::<PlayerEntity>().entity,
                 WantsToDropItem { item: input },
             )
             .expect("Unable to insert intent");
@@ -180,7 +185,7 @@ impl UiHandler for TargetingHandler {
                     result: LookCommand::Inspect(self.selection + get_direction_offset(direction)),
                 },
                 Command::NextTarget => {
-                    let poi = ecs.fetch::<PointsOfInterest>();
+                    let poi = ecs.read_resource::<PointsOfInterest>();
                     let next_pos = poi.get_next(self.selection);
                     match next_pos {
                         Some(next_pos) => ItemMenuResult::Selected {
@@ -188,7 +193,7 @@ impl UiHandler for TargetingHandler {
                         },
                         None => ItemMenuResult::NoResponse,
                     }
-                },
+                }
                 Command::Validate => ItemMenuResult::Selected {
                     result: LookCommand::Select(self.selection),
                 },
@@ -204,7 +209,7 @@ impl UiHandler for TargetingHandler {
                 let mut intent = ecs.write_storage::<WantsToUseItem>();
                 intent
                     .insert(
-                        ecs.fetch::<PlayerEntity>().entity,
+                        ecs.read_resource::<PlayerEntity>().entity,
                         WantsToUseItem {
                             item: self.item,
                             target: Some(selection),
@@ -244,10 +249,57 @@ impl UiHandler for RemoveItemHandler {
         let mut intent = ecs.write_storage::<WantsToRemoveItem>();
         intent
             .insert(
-                ecs.fetch::<PlayerEntity>().entity,
+                ecs.read_resource::<PlayerEntity>().entity,
                 WantsToRemoveItem { item: input },
             )
             .expect("Unable to insert intent");
         RunState::PlayerTurn
+    }
+}
+
+#[derive(PartialEq, Copy, Clone)]
+struct ExamineHandler {
+    selection: Point,
+}
+
+impl UiHandler for ExamineHandler {
+    type Output = Point;
+
+    fn show(&self, _ecs: &mut World, ctx: &mut BTerm) {
+        ctx.print_color(5, 0, RGB::named(YELLOW), RGB::named(BLACK), "Examine mode");
+
+        // Draw mouse cursor
+        let mouse_pos = self.selection;
+        ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(CYAN));
+        draw_tooltips(_ecs, ctx, mouse_pos);
+    }
+
+    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
+        let input = map_all(ctx.key, &[map_direction, map_look_commands]);
+        match input {
+            None => ItemMenuResult::NoResponse,
+            Some(cmd) => match cmd {
+                Command::Direction { direction } => ItemMenuResult::Selected {
+                    result: self.selection + get_direction_offset(direction),
+                },
+                Command::NextTarget => {
+                    let poi = ecs.read_resource::<PointsOfInterest>();
+                    let next_pos = poi.get_next(self.selection);
+                    match next_pos {
+                        Some(next_pos) => ItemMenuResult::Selected { result: next_pos },
+                        None => ItemMenuResult::NoResponse,
+                    }
+                }
+                Command::Validate => ItemMenuResult::NoResponse,
+                Command::Cancel => ItemMenuResult::Cancel,
+                _ => ItemMenuResult::NoResponse,
+            },
+        }
+    }
+
+    fn handle(&self, _ecs: &mut World, input: Point) -> RunState {
+        RunState::ShowUi {
+            screen: UiScreen::Examine { selection: input }
+        }
     }
 }
