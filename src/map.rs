@@ -3,6 +3,8 @@ use serde::{Serialize, Deserialize};
 use specs::*;
 use std::cmp::{max, min};
 
+use crate::points_of_interest::PointsOfInterest;
+
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum TileType {
     Wall,
@@ -233,6 +235,7 @@ impl Map {
 
     pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
         let map = ecs.fetch::<Map>();
+        let poi = ecs.fetch::<PointsOfInterest>();
 
         let mut y = 0;
         let mut x = 0;
@@ -253,7 +256,9 @@ impl Map {
                 if !map.visible_tiles[idx] {
                     fg = fg.to_greyscale()
                 }
-                ctx.set(x, y, fg, RGB::from_f32(0., 0., 0.), glyph);
+
+                let bg = if poi.contains(map.idx_xy(idx)) { RGB::named(BLUE) } else { RGB::from_f32(0., 0., 0.) };
+                ctx.set(x, y, fg, bg, glyph);
             }
 
             // Move the coordinates

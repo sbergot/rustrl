@@ -25,6 +25,9 @@ pub use movement_system::*;
 mod saveload_system;
 pub use saveload_system::*;
 
+mod points_of_interest_system;
+pub use points_of_interest_system::*;
+
 use specs::DispatcherBuilder;
 
 pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> DispatcherBuilder<'a, 'b> {
@@ -40,5 +43,6 @@ pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> Dispatcher
         .with(ItemRemoveSystem {}, "item_remove", &[])
         .with(DamageSystem {}, "damage", &["melee_combat"])
         .with(VisibilitySystem {}, "visibility2", &["movement"])
+        .with(PointsOfInterestSystem {}, "points_of_interest", &["movement"])
         .with(DeadCollection {}, "dead_collection", &["damage"])
 }

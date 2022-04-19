@@ -23,4 +23,8 @@ impl PointsOfInterest {
         }
         return if self.0.is_empty() { None } else { Some(self.0[0]) };
     }
+
+    pub fn contains(&self, pos: Point) -> bool {
+        self.0.contains(&pos)
+    }
 }
