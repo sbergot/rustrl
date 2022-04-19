@@ -1,9 +1,8 @@
 use bracket_lib::prelude::*;
-use specs::*;
 
 use super::game_ui::ItemMenuResult;
 
-pub fn show_selection(ctx: &mut BTerm, title: &str, options: &Vec<(String, Entity)>) {
+pub fn show_selection<T>(ctx: &mut BTerm, title: &str, options: &Vec<(String, T)>) {
     let count = options.len();
 
     let mut y = (25 - (count / 2)) as i32;
@@ -49,7 +48,7 @@ pub fn show_selection(ctx: &mut BTerm, title: &str, options: &Vec<(String, Entit
     }
 }
 
-pub fn read_input_selection(key: Option<VirtualKeyCode>, options: &Vec<(String, Entity)>) -> ItemMenuResult<Entity> {
+pub fn read_input_selection<T: Copy>(key: Option<VirtualKeyCode>, options: &Vec<(String, T)>) -> ItemMenuResult<T> {
     let count = options.len();
 
     match key {

@@ -11,8 +11,19 @@ use crate::{
 };
 
 #[derive(PartialEq, Copy, Clone)]
+pub enum ItemUsage {
+    Use,
+    Drop,
+    Equip,
+    Unequip,
+}
+
+#[derive(PartialEq, Copy, Clone)]
 pub enum UiScreen {
     Inventory,
+    UseItem {
+        item: Entity,
+    },
     DropItem,
     RemoveItem,
     Targeting {
@@ -39,8 +50,9 @@ pub fn run_screen(ecs: &mut World, ctx: &mut BTerm, screen: UiScreen) -> Option<
             selection,
         })
         .run_handler(ecs, ctx),
-        UiScreen::RemoveItem => (RemoveItemHandler {}).run_handler(ecs, ctx),
+        UiScreen::RemoveItem => (EquippedItemHandler {}).run_handler(ecs, ctx),
         UiScreen::Examine { selection } => (ExamineHandler { selection }).run_handler(ecs, ctx),
+        UiScreen::UseItem { item } => (UseItemHandler { item }).run_handler(ecs, ctx),
     }
 }
 
@@ -80,31 +92,37 @@ impl UiHandler for InventoryHandler {
         read_input_selection(ctx.key, &options)
     }
 
-    fn handle(&self, ecs: &mut World, input: Entity) -> RunState {
-        let is_ranged = ecs.read_storage::<Ranged>();
-        let is_item_ranged = is_ranged.get(input);
-        if let Some(is_item_ranged) = is_item_ranged {
-            let player_pos = ecs.read_resource::<PlayerPos>();
-            RunState::ShowUi {
-                screen: UiScreen::Targeting {
-                    range: is_item_ranged.range,
-                    item: input,
-                    selection: player_pos.pos,
-                },
-            }
-        } else {
-            let mut intent = ecs.write_storage::<WantsToUseItem>();
-            intent
-                .insert(
-                    ecs.read_resource::<PlayerEntity>().entity,
-                    WantsToUseItem {
-                        item: input,
-                        target: None,
-                    },
-                )
-                .expect("Unable to insert intent");
-            RunState::PlayerTurn
+    fn handle(&self, _ecs: &mut World, input: Entity) -> RunState {
+        RunState::ShowUi {
+            screen: UiScreen::UseItem { item: input },
         }
+    }
+}
+
+fn try_use_item(ecs: &mut World, input: Entity) -> RunState {
+    let is_ranged = ecs.read_storage::<Ranged>();
+    let is_item_ranged = is_ranged.get(input);
+    if let Some(is_item_ranged) = is_item_ranged {
+        let player_pos = ecs.read_resource::<PlayerPos>();
+        RunState::ShowUi {
+            screen: UiScreen::Targeting {
+                range: is_item_ranged.range,
+                item: input,
+                selection: player_pos.pos,
+            },
+        }
+    } else {
+        let mut intent = ecs.write_storage::<WantsToUseItem>();
+        intent
+            .insert(
+                ecs.read_resource::<PlayerEntity>().entity,
+                WantsToUseItem {
+                    item: input,
+                    target: None,
+                },
+            )
+            .expect("Unable to insert intent");
+        RunState::PlayerTurn
     }
 }
 
@@ -166,14 +184,13 @@ impl UiHandler for TargetingHandler {
             ctx.set_bg(tile.x, tile.y, RGB::named(BLUE));
         }
 
-        // Draw mouse cursor
-        let mouse_pos = self.selection;
-        let valid_target = available_cells.contains(&mouse_pos);
-        if valid_target {
-            ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(CYAN));
+        let pos = self.selection;
+        let color = if available_cells.contains(&pos) {
+            RGB::named(CYAN)
         } else {
-            ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(RED));
-        }
+            RGB::named(RED)
+        };
+        ctx.set_bg(pos.x, pos.y, color);
     }
 
     fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
@@ -230,9 +247,9 @@ impl UiHandler for TargetingHandler {
 }
 
 #[derive(PartialEq, Copy, Clone)]
-struct RemoveItemHandler {}
+struct EquippedItemHandler {}
 
-impl UiHandler for RemoveItemHandler {
+impl UiHandler for EquippedItemHandler {
     type Output = Entity;
 
     fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
@@ -245,15 +262,10 @@ impl UiHandler for RemoveItemHandler {
         read_input_selection(ctx.key, &options)
     }
 
-    fn handle(&self, ecs: &mut World, input: Entity) -> RunState {
-        let mut intent = ecs.write_storage::<WantsToRemoveItem>();
-        intent
-            .insert(
-                ecs.read_resource::<PlayerEntity>().entity,
-                WantsToRemoveItem { item: input },
-            )
-            .expect("Unable to insert intent");
-        RunState::PlayerTurn
+    fn handle(&self, _ecs: &mut World, input: Entity) -> RunState {
+        RunState::ShowUi {
+            screen: UiScreen::UseItem { item: input },
+        }
     }
 }
 
@@ -299,7 +311,49 @@ impl UiHandler for ExamineHandler {
 
     fn handle(&self, _ecs: &mut World, input: Point) -> RunState {
         RunState::ShowUi {
-            screen: UiScreen::Examine { selection: input }
+            screen: UiScreen::Examine { selection: input },
         }
+    }
+}
+
+#[derive(PartialEq, Copy, Clone)]
+struct UseItemHandler {
+    item: Entity,
+}
+
+impl UiHandler for UseItemHandler {
+    type Output = ItemUsage;
+
+    fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
+        let options = get_usage_options(ecs, self.item);
+        show_selection(ctx, "Pick action", &options);
+    }
+
+    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
+        let options = get_usage_options(ecs, self.item);
+        read_input_selection(ctx.key, &options)
+    }
+
+    fn handle(&self, ecs: &mut World, input: ItemUsage) -> RunState {
+        let player_entity = ecs.read_resource::<PlayerEntity>().entity;
+        match input {
+            ItemUsage::Drop => {
+                ecs.write_storage::<WantsToDropItem>()
+                    .insert(player_entity, WantsToDropItem { item: self.item })
+                    .expect("could not insert intent");
+            }
+            ItemUsage::Equip => {
+                return try_use_item(ecs, self.item);
+            }
+            ItemUsage::Unequip => {
+                ecs.write_storage::<WantsToRemoveItem>()
+                    .insert(player_entity, WantsToRemoveItem { item: self.item })
+                    .expect("could not insert intent");
+            }
+            ItemUsage::Use => {
+                return try_use_item(ecs, self.item);
+            }
+        }
+        RunState::PlayerTurn
     }
 }

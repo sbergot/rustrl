@@ -9,6 +9,8 @@ use crate::{
     player::{PlayerEntity, PlayerPos},
 };
 
+use super::gui_handlers::ItemUsage;
+
 pub fn draw_ui(ecs: &World, ctx: &mut BTerm) {
     let map = ecs.read_resource::<Map>();
     ctx.draw_box(
@@ -56,9 +58,6 @@ pub fn draw_ui(ecs: &World, ctx: &mut BTerm) {
             break;
         }
     }
-
-    let mouse_pos = ctx.mouse_pos();
-    ctx.set_bg(mouse_pos.0, mouse_pos.1, RGB::named(MAGENTA));
 }
 
 pub fn draw_tooltips(ecs: &World, ctx: &mut BTerm, pos: Point) {
@@ -149,6 +148,34 @@ pub enum ItemMenuResult<T> {
     Selected { result: T },
 }
 
+pub fn get_usage_options(ecs: &mut World, item: Entity) -> Vec<(String, ItemUsage)> {
+    let player_entity = ecs.read_resource::<PlayerEntity>();
+    let mut options = Vec::new();
+
+    let consumable = ecs.read_storage::<Consumable>();
+    if consumable.contains(item) {
+        options.push(("use".to_string(), ItemUsage::Use));
+    }
+
+    let equippable = ecs.read_storage::<Equippable>();
+    let equipped_storage = ecs.read_storage::<Equipped>();
+    let equipped = equipped_storage.get(item);
+
+    if let Some(equipped) = equipped {
+        if equipped.owner == player_entity.entity {
+            options.push(("unequip".to_string(), ItemUsage::Unequip));
+        }
+    } else {
+        if equippable.contains(item) {
+            options.push(("equip".to_string(), ItemUsage::Equip));
+        }
+    }
+
+    options.push(("drop".to_string(), ItemUsage::Drop));
+
+    options
+}
+
 pub fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let names = ecs.read_storage::<Name>();
@@ -193,4 +220,3 @@ pub fn get_cells_in_range(ecs: &mut World, range: i32) -> Vec<Point> {
     }
     available_cells
 }
-
