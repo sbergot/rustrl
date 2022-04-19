@@ -1,5 +1,6 @@
 use bracket_lib::prelude::{VirtualKeyCode, Point};
 
+#[derive(Clone, Copy)]
 pub enum Command {
     Direction { direction: Direction },
     Grab,
@@ -7,8 +8,12 @@ pub enum Command {
     ShowDropItem,
     ShowRemoveItem,
     SaveQuit,
+    Validate,
+    Cancel,
+    NextTarget,
 }
 
+#[derive(Clone, Copy)]
 pub enum Direction {
     Left,
     Right,
@@ -58,6 +63,15 @@ pub fn map_direction(key: VirtualKeyCode) -> Option<Command> {
     }
 }
 
+pub fn map_look_commands(key: VirtualKeyCode) -> Option<Command> {
+    match key {
+        VirtualKeyCode::Tab => Some(Command::NextTarget),
+        VirtualKeyCode::Return => Some(Command::Validate),
+        VirtualKeyCode::Escape => Some(Command::Cancel),
+        _ => None,
+    }
+}
+
 pub fn map_other_commands(key: VirtualKeyCode) -> Option<Command> {
     match key {
         VirtualKeyCode::G => Some(Command::Grab),
@@ -66,6 +80,20 @@ pub fn map_other_commands(key: VirtualKeyCode) -> Option<Command> {
         VirtualKeyCode::R => Some(Command::ShowRemoveItem),
         VirtualKeyCode::Escape => Some(Command::SaveQuit),
         _ => None,
+    }
+}
+
+pub fn map_all(key: Option<VirtualKeyCode>, mappings: &[fn(key: VirtualKeyCode) -> Option<Command>]) -> Option<Command> {
+    match key {
+        None => None,
+        Some(key) => {
+            for mapping in mappings {
+                if let Some(cmd) = mapping(key) {
+                    return Some(cmd);
+                }
+            }
+            None
+        }
     }
 }
 

@@ -19,7 +19,6 @@ impl<'a> System<'a> for VisibilitySystem {
 
     fn run(&mut self, data: Self::SystemData) {
         let (mut map, mut poi, mut viewshed, pos, players) = data;
-        poi.clear();
         for (player, viewshed, pos) in (players.maybe(), &mut viewshed, &pos).join() {
             if viewshed.dirty {
                 viewshed.visible_tiles.clear();
@@ -30,6 +29,7 @@ impl<'a> System<'a> for VisibilitySystem {
 
                 // If this is the player, reveal what they can see
                 if let Some(_p) = player {
+                    poi.clear();
                     for t in map.visible_tiles.iter_mut() {
                         *t = false
                     }

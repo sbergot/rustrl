@@ -61,12 +61,8 @@ fn try_move_player(direction: Direction, ecs: &mut World) {
     }
 }
 
-fn map_key(key: VirtualKeyCode) -> Option<Command> {
-    map_direction(key).or(map_other_commands(key))
-}
-
 pub fn player_input(world: &mut World, key: Option<VirtualKeyCode>) -> RunState {
-    let cmd = key.and_then(map_key);
+    let cmd = map_all(key, &[map_direction, map_other_commands]);
     match cmd {
         None => return RunState::AwaitingInput,
         Some(command) => match command {
@@ -88,6 +84,7 @@ pub fn player_input(world: &mut World, key: Option<VirtualKeyCode>) -> RunState 
                 }
             }
             Command::SaveQuit => return RunState::SaveGame,
+            _ => {},
         },
     }
     RunState::PlayerTurn
