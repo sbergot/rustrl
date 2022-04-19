@@ -67,6 +67,7 @@ pub fn player_input(world: &mut World, key: Option<VirtualKeyCode>) -> RunState 
         None => return RunState::AwaitingInput,
         Some(command) => match command {
             Command::Direction { direction } => try_move_player(direction, world),
+            Command::Wait => { println!("you wait"); },
             Command::Grab => grab_item(world),
             Command::ShowInventory => {
                 return RunState::ShowUi {

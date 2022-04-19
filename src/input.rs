@@ -3,6 +3,7 @@ use bracket_lib::prelude::{VirtualKeyCode, Point};
 #[derive(Clone, Copy)]
 pub enum Command {
     Direction { direction: Direction },
+    Wait,
     Grab,
     ShowInventory,
     ShowDropItem,
@@ -75,6 +76,7 @@ pub fn map_look_commands(key: VirtualKeyCode) -> Option<Command> {
 
 pub fn map_other_commands(key: VirtualKeyCode) -> Option<Command> {
     match key {
+        VirtualKeyCode::W => Some(Command::Wait),
         VirtualKeyCode::G => Some(Command::Grab),
         VirtualKeyCode::I => Some(Command::ShowInventory),
         VirtualKeyCode::D => Some(Command::ShowDropItem),
