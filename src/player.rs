@@ -67,7 +67,7 @@ pub fn player_input(world: &mut World, key: Option<VirtualKeyCode>) -> RunState 
         None => return RunState::AwaitingInput,
         Some(command) => match command {
             Command::Direction { direction } => try_move_player(direction, world),
-            Command::Wait => { println!("you wait"); },
+            Command::Wait => {}
             Command::Grab => grab_item(world),
             Command::ShowInventory => {
                 return RunState::ShowUi {
@@ -87,11 +87,13 @@ pub fn player_input(world: &mut World, key: Option<VirtualKeyCode>) -> RunState 
             Command::ExamineMode => {
                 let player_pos = world.read_resource::<PlayerPos>();
                 return RunState::ShowUi {
-                    screen: UiScreen::Examine { selection: player_pos.pos },
-                }
+                    screen: UiScreen::Examine {
+                        selection: player_pos.pos,
+                    },
+                };
             }
             Command::SaveQuit => return RunState::SaveGame,
-            _ => {},
+            _ => {}
         },
     }
     RunState::PlayerTurn
