@@ -7,7 +7,7 @@ use crate::{
     input::*,
     player::{PlayerEntity, PlayerPos},
     points_of_interest::PointsOfInterest,
-    state::RunState,
+    state::RunState, queries::*,
 };
 
 #[derive(PartialEq, Copy, Clone)]
@@ -34,6 +34,31 @@ pub enum UiScreen {
     Examine {
         selection: Point,
     },
+}
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum ItemMenuResult<T> {
+    Cancel,
+    NoResponse,
+    Selected { result: T },
+}
+
+pub fn read_input_selection<T: Copy>(key: Option<VirtualKeyCode>, options: &Vec<(String, T)>) -> ItemMenuResult<T> {
+    let count = options.len();
+
+    match key {
+        None => ItemMenuResult::NoResponse,
+        Some(key) => match key {
+            VirtualKeyCode::Escape => ItemMenuResult::Cancel,
+            _ => {
+                let selection = letter_to_option(key);
+                if selection > -1 && selection < count as i32 {
+                    return ItemMenuResult::Selected { result: options[selection as usize].1 };
+                }
+                ItemMenuResult::NoResponse
+            }
+        },
+    }
 }
 
 pub fn run_screen(ecs: &mut World, ctx: &mut BTerm, screen: UiScreen) -> Option<RunState> {
@@ -280,10 +305,9 @@ impl UiHandler for ExamineHandler {
     fn show(&self, _ecs: &mut World, ctx: &mut BTerm) {
         ctx.print_color(5, 0, RGB::named(YELLOW), RGB::named(BLACK), "Examine mode");
 
-        // Draw mouse cursor
-        let mouse_pos = self.selection;
-        ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(CYAN));
-        draw_tooltips(_ecs, ctx, mouse_pos);
+        let pos = self.selection;
+        ctx.set_bg(pos.x, pos.y, RGB::named(CYAN));
+        draw_tooltips(_ecs, ctx, pos);
     }
 
     fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {

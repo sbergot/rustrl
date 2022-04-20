@@ -9,6 +9,7 @@ mod points_of_interest;
 mod spawner;
 mod state;
 mod systems;
+mod queries;
 
 use bracket_lib::prelude::{main_loop, BError, BTermBuilder};
 use constants::*;

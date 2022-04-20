@@ -1,7 +1,5 @@
 use bracket_lib::prelude::*;
 
-use super::game_ui::ItemMenuResult;
-
 pub fn show_selection<T>(ctx: &mut BTerm, title: &str, options: &Vec<(String, T)>) {
     let count = options.len();
 
@@ -45,23 +43,5 @@ pub fn show_selection<T>(ctx: &mut BTerm, title: &str, options: &Vec<(String, T)
         ctx.print(21, y, name);
         y += 1;
         j += 1;
-    }
-}
-
-pub fn read_input_selection<T: Copy>(key: Option<VirtualKeyCode>, options: &Vec<(String, T)>) -> ItemMenuResult<T> {
-    let count = options.len();
-
-    match key {
-        None => ItemMenuResult::NoResponse,
-        Some(key) => match key {
-            VirtualKeyCode::Escape => ItemMenuResult::Cancel,
-            _ => {
-                let selection = letter_to_option(key);
-                if selection > -1 && selection < count as i32 {
-                    return ItemMenuResult::Selected { result: options[selection as usize].1 };
-                }
-                ItemMenuResult::NoResponse
-            }
-        },
     }
 }
