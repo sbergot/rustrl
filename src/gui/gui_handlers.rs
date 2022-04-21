@@ -24,7 +24,6 @@ pub enum UiScreen {
     UseItem {
         item: Entity,
     },
-    DropItem,
     RemoveItem,
     Targeting {
         range: i32,
@@ -64,7 +63,6 @@ pub fn read_input_selection<T: Copy>(key: Option<VirtualKeyCode>, options: &Vec<
 pub fn run_screen(ecs: &mut World, ctx: &mut BTerm, screen: UiScreen) -> Option<RunState> {
     match screen {
         UiScreen::Inventory => (InventoryHandler {}).run_handler(ecs, ctx),
-        UiScreen::DropItem => (DropItemHandler {}).run_handler(ecs, ctx),
         UiScreen::Targeting {
             range,
             item,
@@ -145,34 +143,6 @@ fn try_use_item(ecs: &mut World, input: Entity) -> RunState {
                     item: input,
                     target: None,
                 },
-            )
-            .expect("Unable to insert intent");
-        RunState::PlayerTurn
-    }
-}
-
-#[derive(PartialEq, Copy, Clone)]
-struct DropItemHandler {}
-
-impl UiHandler for DropItemHandler {
-    type Output = Entity;
-
-    fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
-        let options = get_inventory_options(ecs);
-        show_selection(ctx, "Drop Which Item?", &options)
-    }
-
-    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
-        let options = get_inventory_options(ecs);
-        read_input_selection(ctx.key, &options)
-    }
-
-    fn handle(&self, ecs: &mut World, input: Entity) -> RunState {
-        let mut intent = ecs.write_storage::<WantsToDropItem>();
-        intent
-            .insert(
-                ecs.read_resource::<PlayerEntity>().entity,
-                WantsToDropItem { item: input },
             )
             .expect("Unable to insert intent");
         RunState::PlayerTurn

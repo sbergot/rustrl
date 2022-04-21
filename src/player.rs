@@ -74,11 +74,6 @@ pub fn player_input(world: &mut World, key: Option<VirtualKeyCode>) -> RunState 
                     screen: UiScreen::Inventory,
                 }
             }
-            Command::ShowDropItem => {
-                return RunState::ShowUi {
-                    screen: UiScreen::DropItem,
-                }
-            }
             Command::ShowRemoveItem => {
                 return RunState::ShowUi {
                     screen: UiScreen::RemoveItem,
