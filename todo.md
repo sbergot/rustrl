@@ -1,0 +1,7 @@
+- decal system for blood
+- particle system for animations
+- energy system for dynamic turns
+- do not redraw everything on each tick
+- avoid adding & removing component each time (want xxx)
+- 3d map
+- map generation 

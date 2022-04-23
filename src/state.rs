@@ -58,6 +58,7 @@ impl<'a, 'b> State<'a, 'b> {
 impl GameState for State<'static, 'static> {
     fn tick(&mut self, ctx: &mut BTerm) {
         ctx.cls();
+        particle_system::cull_dead_particles(&mut self.ecs, ctx);
 
         let mut newrunstate;
         {
@@ -147,6 +148,7 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
     world.register::<SimpleMarker<SerializeMe>>();
     world.register::<SerializationHelper>();
     world.insert(SimpleMarkerAllocator::<SerializeMe>::new());
+    world.insert(particle_system::ParticleBuilder::new());
 
     let mut gs = State {
         ecs: world,

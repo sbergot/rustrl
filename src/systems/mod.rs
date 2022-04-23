@@ -28,10 +28,14 @@ pub use saveload_system::*;
 mod points_of_interest_system;
 pub use points_of_interest_system::*;
 
+pub mod particle_system;
+pub use particle_system::*;
+
 use specs::DispatcherBuilder;
 
 pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> DispatcherBuilder<'a, 'b> {
     dispatcher
+        .with(ParticleSpawnSystem {}, "particle", &[])
         .with(VisibilitySystem {}, "visibility", &[])
         .with(MonsterAI {}, "monster_ai", &["visibility"])
         .with(MovementSystem {}, "movement", &["monster_ai"])
