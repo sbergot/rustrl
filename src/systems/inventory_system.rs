@@ -1,10 +1,12 @@
-use bracket_lib::prelude::{field_of_view, Point};
+use bracket_lib::prelude::*;
 use specs::prelude::*;
 
 use crate::components::*;
 use crate::gamelog::GameLog;
 use crate::map::Map;
 use crate::player::PlayerEntity;
+
+use super::ParticleBuilder;
 
 pub struct ItemCollectionSystem {}
 
@@ -54,6 +56,7 @@ impl<'a> System<'a> for ItemUseSystem {
         ReadExpect<'a, Map>,
         ReadExpect<'a, PlayerEntity>,
         WriteExpect<'a, GameLog>,
+        WriteExpect<'a, ParticleBuilder>,
         Entities<'a>,
         ReadStorage<'a, Player>,
         ReadStorage<'a, Name>,
@@ -63,6 +66,7 @@ impl<'a> System<'a> for ItemUseSystem {
         ReadStorage<'a, Confusion>,
         ReadStorage<'a, Consumable>,
         ReadStorage<'a, Equippable>,
+        ReadStorage<'a, Position>,
         WriteStorage<'a, Equipped>,
         WriteStorage<'a, WantsToUseItem>,
         WriteStorage<'a, SufferDamage>,
@@ -76,6 +80,7 @@ impl<'a> System<'a> for ItemUseSystem {
             map,
             player_entity,
             mut gamelog,
+            mut particle_builder,
             entities,
             players,
             names,
@@ -85,6 +90,7 @@ impl<'a> System<'a> for ItemUseSystem {
             confusion,
             consumables,
             equippables,
+            positions,
             mut equipped,
             mut wants_use_items,
             mut suffer_damage,
@@ -123,6 +129,13 @@ impl<'a> System<'a> for ItemUseSystem {
                                 for mob in map.entities_tiles[idx].iter() {
                                     targets.push(*mob);
                                 }
+                                particle_builder.request(
+                                    *tile_idx,
+                                    RGB::named(ORANGE),
+                                    RGB::named(BLACK),
+                                    to_cp437('░'),
+                                    200.0,
+                                );
                             }
                         }
                     }
@@ -187,6 +200,17 @@ impl<'a> System<'a> for ItemUseSystem {
                             }
                             used_item = true;
                         }
+
+                        let pos = positions.get(*target);
+                        if let Some(pos) = pos {
+                            particle_builder.request(
+                                pos.pos,
+                                RGB::named(GREEN),
+                                RGB::named(BLACK),
+                                to_cp437('♥'),
+                                200.0,
+                            );
+                        }
                     }
                 }
             }
@@ -204,6 +228,17 @@ impl<'a> System<'a> for ItemUseSystem {
                                 "You use {} on {}, inflicting {} hp.",
                                 item_name.name, mob_name.name, damage.damage
                             ));
+
+                            let pos = positions.get(*mob);
+                            if let Some(pos) = pos {
+                                particle_builder.request(
+                                    pos.pos,
+                                    RGB::named(RED),
+                                    RGB::named(BLACK),
+                                    to_cp437('‼'),
+                                    200.0,
+                                );
+                            }
                         }
                         used_item = true;
                     }
@@ -227,6 +262,17 @@ impl<'a> System<'a> for ItemUseSystem {
                                     "You use {} on {}, confusing them.",
                                     item_name.name, mob_name.name
                                 ));
+
+                                let pos = positions.get(*mob);
+                                if let Some(pos) = pos {
+                                    particle_builder.request(
+                                        pos.pos,
+                                        RGB::named(MAGENTA),
+                                        RGB::named(BLACK),
+                                        to_cp437('?'),
+                                        200.0,
+                                    );
+                                }
                             }
                         }
                     }
@@ -311,7 +357,8 @@ impl<'a> System<'a> for ItemRemoveSystem {
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (entities, mut log, players, names, mut wants_remove, mut equipped, mut backpack) = data;
+        let (entities, mut log, players, names, mut wants_remove, mut equipped, mut backpack) =
+            data;
 
         for (player, entity, to_remove) in (players.maybe(), &entities, &wants_remove).join() {
             equipped.remove(to_remove.item);

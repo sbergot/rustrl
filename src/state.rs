@@ -31,13 +31,17 @@ pub struct Selection(Option<Point>);
 
 pub struct State<'a, 'b> {
     pub ecs: World,
-    dispatcher: Dispatcher<'a, 'b>,
+    gameplay_systems: Dispatcher<'a, 'b>,
+    indexing_systems: Dispatcher<'a, 'b>,
+    actor_systems: Dispatcher<'a, 'b>,
 }
 
 impl<'a, 'b> State<'a, 'b> {
     fn run_systems(&mut self) {
-        self.dispatcher.dispatch(&self.ecs);
+        self.gameplay_systems.dispatch(&self.ecs);
         self.ecs.maintain();
+        self.indexing_systems.dispatch(&self.ecs);
+        self.actor_systems.dispatch(&self.ecs);
     }
 
     fn draw_renderables(&mut self, ctx: &mut BTerm) {
@@ -137,8 +141,15 @@ impl GameState for State<'static, 'static> {
 pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
     let mut world = World::new();
 
-    let mut dispatcher = with_systems(DispatcherBuilder::new()).build();
-    dispatcher.setup(&mut world);
+    let mut gameplay_dispatcher = with_gameplay_systems(DispatcherBuilder::new()).build();
+    gameplay_dispatcher.setup(&mut world);
+
+    let mut indexing_dispatcher = with_indexing_systems(DispatcherBuilder::new()).build();
+    indexing_dispatcher.setup(&mut world);
+
+    let mut actors_dispatcher = with_actors_systems(DispatcherBuilder::new()).build();
+    actors_dispatcher.setup(&mut world);
+
     world.register::<Renderable>();
     world.register::<Item>();
     world.register::<ProvidesHealing>();
@@ -152,7 +163,9 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
 
     let mut gs = State {
         ecs: world,
-        dispatcher,
+        gameplay_systems: gameplay_dispatcher,
+        indexing_systems: indexing_dispatcher,
+        actor_systems: actors_dispatcher,
     };
 
     let (rooms, map) = map::Map::new_map_rooms_and_corridors(width, height);

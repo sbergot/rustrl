@@ -10,6 +10,7 @@ mod spawner;
 mod state;
 mod systems;
 mod queries;
+mod actions;
 
 use bracket_lib::prelude::{main_loop, BError, BTermBuilder};
 use constants::*;

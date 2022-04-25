@@ -33,13 +33,13 @@ pub use particle_system::*;
 
 use specs::DispatcherBuilder;
 
-pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> DispatcherBuilder<'a, 'b> {
+pub fn with_gameplay_systems<'a, 'b>(
+    dispatcher: DispatcherBuilder<'a, 'b>,
+) -> DispatcherBuilder<'a, 'b> {
     dispatcher
         .with(ParticleSpawnSystem {}, "particle", &[])
         .with(VisibilitySystem {}, "visibility", &[])
-        .with(MonsterAI {}, "monster_ai", &["visibility"])
         .with(MovementSystem {}, "movement", &["monster_ai"])
-        .with(MapIndexingSystem {}, "map_indexing", &["monster_ai"])
         .with(MeleeCombatSystem {}, "melee_combat", &["monster_ai"])
         .with(ItemCollectionSystem {}, "item_collection", &[])
         .with(ItemUseSystem {}, "potion_use", &[])
@@ -47,6 +47,23 @@ pub fn with_systems<'a, 'b>(dispatcher: DispatcherBuilder<'a, 'b>) -> Dispatcher
         .with(ItemRemoveSystem {}, "item_remove", &[])
         .with(DamageSystem {}, "damage", &["melee_combat"])
         .with(VisibilitySystem {}, "visibility2", &["movement"])
-        .with(PointsOfInterestSystem {}, "points_of_interest", &["movement"])
         .with(DeadCollection {}, "dead_collection", &["damage"])
+}
+
+pub fn with_indexing_systems<'a, 'b>(
+    dispatcher: DispatcherBuilder<'a, 'b>,
+) -> DispatcherBuilder<'a, 'b> {
+    dispatcher
+        .with(MapIndexingSystem {}, "map_indexing", &[])
+        .with(
+            PointsOfInterestSystem {},
+            "points_of_interest",
+            &["map_indexing"],
+        )
+}
+
+pub fn with_actors_systems<'a, 'b>(
+    dispatcher: DispatcherBuilder<'a, 'b>,
+) -> DispatcherBuilder<'a, 'b> {
+    dispatcher.with(MonsterAI {}, "monster_ai", &[])
 }
