@@ -84,11 +84,6 @@ impl CombatStats {
 }
 
 #[derive(Component, ConvertSaveload, Clone)]
-pub struct SufferDamage {
-    pub amount: Vec<i32>,
-}
-
-#[derive(Component, ConvertSaveload, Clone)]
 pub struct Confused {
     pub turns: i32,
 }

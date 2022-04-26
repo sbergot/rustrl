@@ -25,10 +25,12 @@ impl<'a> System<'a> for DeadCollection {
                         if let Some(victim_name) = victim_name {
                             logs.log(format!("{} is dead", &victim_name.name));
                         }
-                        dead.push(entity);
                     }
-                    Some(_) => logs.log("You die".to_string()),
+                    Some(_) => {
+                        logs.log("You die".to_string());
+                    },
                 }
+                dead.push(entity);
             }
         }
 

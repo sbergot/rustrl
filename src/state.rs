@@ -4,11 +4,11 @@ use specs::saveload::*;
 
 use crate::components::*;
 use crate::gamelog::GameLog;
-use crate::gui::game_ui::draw_ui;
+use crate::gui::game_ui::*;
 use crate::gui::gui_handlers::*;
 use crate::gui::main_menu::*;
-use crate::map;
 use crate::map::Map;
+use crate::map_generation;
 use crate::player;
 use crate::player::PlayerEntity;
 use crate::player::PlayerPos;
@@ -25,6 +25,7 @@ pub enum RunState {
     ShowUi { screen: UiScreen },
     MainMenu { menu_selection: MainMenuSelection },
     SaveGame,
+    GameOver,
 }
 
 pub struct Selection(Option<Point>);
@@ -56,6 +57,23 @@ impl<'a, 'b> State<'a, 'b> {
             }
         }
     }
+
+    fn game_over_cleanup(&mut self) {
+        // Delete everything
+        let mut to_delete = Vec::new();
+        for e in self.ecs.entities().join() {
+            to_delete.push(e);
+        }
+        for del in to_delete.iter() {
+            self.ecs.delete_entity(*del).expect("Deletion failed");
+        }
+    }
+
+    fn is_player_dead(&mut self) -> bool {
+        let entities = self.ecs.entities();
+        let player_entity = self.ecs.read_resource::<PlayerEntity>().entity;
+        !entities.is_alive(player_entity)
+    }
 }
 
 impl GameState for State<'static, 'static> {
@@ -84,7 +102,12 @@ impl GameState for State<'static, 'static> {
             }
             RunState::AwaitingInput => {
                 self.run_systems();
-                newrunstate = player::player_input(&mut self.ecs, ctx.key);
+
+                if self.is_player_dead() {
+                    newrunstate = RunState::GameOver;
+                } else {
+                    newrunstate = player::player_input(&mut self.ecs, ctx.key);
+                }
             }
             RunState::PlayerTurn => {
                 self.run_systems();
@@ -127,6 +150,18 @@ impl GameState for State<'static, 'static> {
                 newrunstate = RunState::MainMenu {
                     menu_selection: MainMenuSelection::LoadGame,
                 };
+            }
+            RunState::GameOver => {
+                let result = game_over(ctx);
+                match result {
+                    GameOverResult::NoSelection => {}
+                    GameOverResult::QuitToMenu => {
+                        self.game_over_cleanup();
+                        newrunstate = RunState::MainMenu {
+                            menu_selection: MainMenuSelection::NewGame,
+                        };
+                    }
+                }
             }
         }
 
@@ -175,7 +210,9 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
         indexing_systems: indexing_dispatcher,
     };
 
-    let (rooms, map) = map::Map::new_map_rooms_and_corridors(width, height);
+    let mut generator = map_generation::MapGenerator::new(width, height);
+    let (rooms, map) = generator.new_map_rooms_and_corridors();
+
     gs.ecs.insert(map);
     gs.ecs.insert(RunState::MainMenu {
         menu_selection: MainMenuSelection::NewGame,
