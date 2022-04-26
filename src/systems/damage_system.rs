@@ -6,19 +6,16 @@ pub struct DamageSystem {}
 impl<'a> System<'a> for DamageSystem {
     type SystemData = (
         WriteStorage<'a, CombatStats>,
-        WriteStorage<'a, SufferDamage>,
         ReadStorage<'a, Position>,
         WriteExpect<'a, Map>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (mut stats, mut damage, positions, mut map) = data;
+        let (mut stats, positions, mut map) = data;
 
-        for (mut stats, damage, position) in (&mut stats, &damage, &positions).join() {
-            stats.hp -= damage.amount.iter().sum::<i32>();
+        for (mut stats, position) in (&mut stats, &positions).join() {
             map.decal_tiles.insert(position.pos, Decal::blood());
+            stats.was_hurt = false;
         }
-
-        damage.clear();
     }
 }

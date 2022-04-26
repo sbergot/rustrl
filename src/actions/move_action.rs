@@ -3,10 +3,10 @@ use specs::WorldExt;
 
 use crate::{map::Map, components::*, player::PlayerPos};
 
-use super::Action;
+use super::{Action, has_component};
 
 pub struct MoveAction {
-    target: Point,
+    pub target: Point,
 }
 
 impl Action for MoveAction {
@@ -14,12 +14,13 @@ impl Action for MoveAction {
         let mut map = ecs.write_resource::<Map>();
         let mut player_pos = ecs.write_resource::<PlayerPos>();
 
-        let mut viewsheds = ecs.write_storage::<Viewshed>();
-        let mut positions = ecs.write_storage::<Position>();
-        let players = ecs.read_storage::<Player>();
+        let mut storage = ecs.write_storage::<Viewshed>();
+        let viewshed = storage.get_mut(actor);
+        let mut storage = ecs.write_storage::<Position>();
+        let position = storage.get_mut(actor).unwrap();
 
-        let mut position = positions.get_mut(actor).unwrap();
-        
+        let is_player = has_component::<Player>(ecs, actor);
+
         let target_idx = map.xy_idx(self.target);
         if !map.blocked_tiles[target_idx] {
             let pos_idx = map.xy_idx(position.pos);
@@ -27,11 +28,11 @@ impl Action for MoveAction {
             map.blocked_tiles[target_idx] = true;
             position.pos = self.target;
 
-            if players.contains(actor) {
+            if is_player {
                 player_pos.pos = self.target;
             }
 
-            if let Some(mut viewshed) = viewsheds.get_mut(actor) {
+            if let Some(mut viewshed) = viewshed {
                 viewshed.dirty = true;
             }
         }

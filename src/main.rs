@@ -11,6 +11,7 @@ mod state;
 mod systems;
 mod queries;
 mod actions;
+mod entity_containers;
 
 use bracket_lib::prelude::{main_loop, BError, BTermBuilder};
 use constants::*;

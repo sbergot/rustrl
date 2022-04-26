@@ -1,15 +1,13 @@
 use bracket_lib::prelude::{FontCharType, Point, RGB};
 use serde::*;
 #[allow(deprecated)]
-use specs::{
-    error::NoError,
-    prelude::*,
-    saveload::*,
-    Entity,
-};
+use specs::{error::NoError, prelude::*, saveload::*, Entity};
 use specs_derive::{Component, ConvertSaveload};
 
-use crate::map::Map;
+use crate::{
+    entity_containers::{EntityHashMap, EntityVec},
+    map::Map,
+};
 
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct Position {
@@ -61,11 +59,28 @@ pub struct CombatStats {
     pub hp: i32,
     pub defense: i32,
     pub power: i32,
+    pub was_hurt: bool,
 }
 
-#[derive(Component, ConvertSaveload, Clone)]
-pub struct WantsToMelee {
-    pub target: Entity,
+impl CombatStats {
+    pub fn new(hp: i32, defense: i32, power: i32) -> CombatStats {
+        CombatStats {
+            max_hp: hp,
+            hp,
+            defense,
+            power,
+            was_hurt: false,
+        }
+    }
+
+    pub fn deal_damage(&mut self, amount: i32) {
+        self.hp -= amount;
+        self.was_hurt = true;
+    }
+
+    pub fn heal(&mut self, amount: i32) {
+        self.hp = i32::min(self.max_hp, self.hp + amount);
+    }
 }
 
 #[derive(Component, ConvertSaveload, Clone)]
@@ -73,58 +88,34 @@ pub struct SufferDamage {
     pub amount: Vec<i32>,
 }
 
-impl SufferDamage {
-    pub fn new_damage(store: &mut WriteStorage<SufferDamage>, victim: Entity, amount: i32) {
-        if let Some(suffering) = store.get_mut(victim) {
-            suffering.amount.push(amount);
-        } else {
-            let dmg = SufferDamage {
-                amount: vec![amount],
-            };
-            store.insert(victim, dmg).expect("Unable to insert damage");
-        }
-    }
-}
-
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct Confused {
-    pub turns : i32
+    pub turns: i32,
 }
 
 #[derive(Component, ConvertSaveload, Clone)]
-pub struct WantsToMove {
-    pub target: Point,
+pub struct Inventory {
+    pub items: EntityVec<Entity>,
+}
+
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Hash, Eq)]
+pub enum EquipmentSlot {
+    Melee,
+    Shield,
+}
+
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct Equippable {
+    pub slot: EquipmentSlot,
 }
 
 #[derive(Component, ConvertSaveload, Clone)]
-pub struct WantsToPickupItem {
-    pub collected_by: Entity,
-    pub item: Entity,
-}
-
-#[derive(Component, ConvertSaveload, Clone)]
-pub struct WantsToUseItem {
-    pub item: Entity,
-    pub target: Option<Point>,
-}
-
-#[derive(Component, Debug, ConvertSaveload, Clone)]
-pub struct WantsToDropItem {
-    pub item: Entity,
-}
-
-#[derive(Component, Debug, ConvertSaveload, Clone)]
-pub struct WantsToRemoveItem {
-    pub item : Entity
+pub struct Equipment {
+    pub slots: EntityHashMap<EquipmentSlot, Entity>,
 }
 
 #[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Item {}
-
-#[derive(Component, ConvertSaveload, Clone)]
-pub struct InBackpack {
-    pub owner: Entity,
-}
 
 #[derive(Component, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Consumable {}
@@ -141,7 +132,7 @@ pub struct InflictsDamage {
 
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct AreaOfEffect {
-    pub radius : i32
+    pub radius: i32,
 }
 
 #[derive(Component, ConvertSaveload, Clone)]
@@ -151,41 +142,27 @@ pub struct ProvidesHealing {
 
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct Confusion {
-    pub turns : i32
-}
-
-#[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
-pub enum EquipmentSlot { Melee, Shield }
-
-#[derive(Component, Serialize, Deserialize, Clone)]
-pub struct Equippable {
-    pub slot : EquipmentSlot
-}
-
-#[derive(Component, ConvertSaveload, Clone)]
-pub struct Equipped {
-    pub owner : Entity,
-    pub slot : EquipmentSlot
+    pub turns: i32,
 }
 
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct MeleePowerBonus {
-    pub power : i32
+    pub power: i32,
 }
 
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct DefenseBonus {
-    pub defense : i32
+    pub defense: i32,
 }
 
 #[derive(Component, Serialize, Deserialize, Clone)]
 pub struct ParticleLifetime {
-    pub lifetime_ms : f32
+    pub lifetime_ms: f32,
 }
 
 pub struct SerializeMe;
 
 #[derive(Component, Serialize, Deserialize, Clone)]
 pub struct SerializationHelper {
-    pub map : Map
+    pub map: Map,
 }

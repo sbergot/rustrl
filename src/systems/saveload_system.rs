@@ -61,11 +61,6 @@ pub fn save_game(ecs: &mut World) {
             BlocksTile,
             CombatStats,
             SufferDamage,
-            WantsToMelee,
-            WantsToMove,
-            WantsToPickupItem,
-            WantsToUseItem,
-            WantsToDropItem,
             Item,
             Consumable,
             Equippable,
@@ -74,7 +69,6 @@ pub fn save_game(ecs: &mut World) {
             AreaOfEffect,
             ProvidesHealing,
             Confusion,
-            InBackpack,
             SerializationHelper
         );
     }
@@ -138,11 +132,6 @@ pub fn load_game(ecs: &mut World) {
             BlocksTile,
             CombatStats,
             SufferDamage,
-            WantsToMelee,
-            WantsToMove,
-            WantsToPickupItem,
-            WantsToUseItem,
-            WantsToDropItem,
             Item,
             Consumable,
             Equippable,
@@ -151,7 +140,6 @@ pub fn load_game(ecs: &mut World) {
             AreaOfEffect,
             ProvidesHealing,
             Confusion,
-            InBackpack,
             SerializationHelper
         );
     }

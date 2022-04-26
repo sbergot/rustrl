@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::components::*;
+use crate::{components::*, entity_containers::{EntityVec, EntityHashMap}};
 use bracket_lib::prelude::*;
 use specs::{saveload::*, *};
 
@@ -20,12 +20,9 @@ pub fn player(ecs: &mut World, pos: Point) -> Entity {
         .with(Name {
             name: "Player".to_string(),
         })
-        .with(CombatStats {
-            max_hp: 30,
-            hp: 30,
-            defense: 2,
-            power: 5,
-        })
+        .with(CombatStats::new(30, 2, 5))
+        .with(Inventory { items: EntityVec::new() })
+        .with(Equipment { slots: EntityHashMap::new() })
         .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }
@@ -56,12 +53,7 @@ fn monster<S: ToString>(ecs: &mut World, pos: Point, glyph: FontCharType, name: 
             name: name.to_string(),
         })
         .with(BlocksTile {})
-        .with(CombatStats {
-            max_hp: 16,
-            hp: 16,
-            defense: 1,
-            power: 4,
-        })
+        .with(CombatStats::new(16, 1, 4))
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }

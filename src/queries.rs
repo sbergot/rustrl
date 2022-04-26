@@ -19,13 +19,12 @@ pub fn get_usage_options(ecs: &mut World, item: Entity) -> Vec<(String, ItemUsag
     }
 
     let equippable = ecs.read_storage::<Equippable>();
-    let equipped_storage = ecs.read_storage::<Equipped>();
-    let equipped = equipped_storage.get(item);
+    let storage = ecs.read_storage::<Equipment>();
+    let player_equipment = storage.get(player_entity.entity).unwrap();
+    let is_equipped = player_equipment.slots.values().any(|e| *e == item);
 
-    if let Some(equipped) = equipped {
-        if equipped.owner == player_entity.entity {
-            options.push(("unequip".to_string(), ItemUsage::Unequip));
-        }
+    if is_equipped {
+        options.push(("unequip".to_string(), ItemUsage::Unequip));
     } else {
         if equippable.contains(item) {
             options.push(("equip".to_string(), ItemUsage::Equip));
@@ -39,12 +38,10 @@ pub fn get_usage_options(ecs: &mut World, item: Entity) -> Vec<(String, ItemUsag
 pub fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let names = ecs.read_storage::<Name>();
-    let backpack = ecs.read_storage::<InBackpack>();
-    let entities = ecs.entities();
-    let options: Vec<(String, Entity)> = (&backpack, &names, &entities)
-        .join()
-        .filter(|(item, _name, _e)| item.owner == player_entity.entity)
-        .map(|(_i, name, entity)| (name.name.clone(), entity))
+    let storage = ecs.read_storage::<Inventory>();
+    let player_inventory = storage.get(player_entity.entity).unwrap();
+    let options: Vec<(String, Entity)> = player_inventory.items.iter()
+        .map(|entity| (names.get(*entity).unwrap().name.clone(), *entity))
         .collect();
 
     let mut count_dict = HashMap::<String, i32>::new();
@@ -67,12 +64,12 @@ pub fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
 pub fn get_equipped_options(ecs: &mut World) -> Vec<(String, Entity)> {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let names = ecs.read_storage::<Name>();
-    let backpack = ecs.read_storage::<Equipped>();
-    let entities = ecs.entities();
-    let options: Vec<(String, Entity)> = (&entities, &backpack, &names)
-        .join()
-        .filter(|(_entity, pack, _name)| pack.owner == player_entity.entity)
-        .map(|(entity, _pack, name)| (name.name.clone(), entity))
+
+    let storage = ecs.read_storage::<Equipment>();
+    let player_equipment = storage.get(player_entity.entity).unwrap();
+
+    let options: Vec<(String, Entity)> = player_equipment.slots.values()
+        .map(|entity| (names.get(*entity).unwrap().name.clone(), *entity))
         .collect();
     options
 }

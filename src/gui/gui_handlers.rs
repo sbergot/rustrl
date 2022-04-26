@@ -2,12 +2,14 @@ use bracket_lib::prelude::*;
 use specs::*;
 
 use crate::{
+    actions::*,
     components::*,
     gui::{components::*, game_ui::*},
     input::*,
     player::{PlayerEntity, PlayerPos},
     points_of_interest::PointsOfInterest,
-    state::RunState, queries::*,
+    queries::*,
+    state::RunState,
 };
 
 #[derive(PartialEq, Copy, Clone)]
@@ -42,7 +44,10 @@ pub enum ItemMenuResult<T> {
     Selected { result: T },
 }
 
-pub fn read_input_selection<T: Copy>(key: Option<VirtualKeyCode>, options: &Vec<(String, T)>) -> ItemMenuResult<T> {
+pub fn read_input_selection<T: Copy>(
+    key: Option<VirtualKeyCode>,
+    options: &Vec<(String, T)>,
+) -> ItemMenuResult<T> {
     let count = options.len();
 
     match key {
@@ -52,7 +57,9 @@ pub fn read_input_selection<T: Copy>(key: Option<VirtualKeyCode>, options: &Vec<
             _ => {
                 let selection = letter_to_option(key);
                 if selection > -1 && selection < count as i32 {
-                    return ItemMenuResult::Selected { result: options[selection as usize].1 };
+                    return ItemMenuResult::Selected {
+                        result: options[selection as usize].1,
+                    };
                 }
                 ItemMenuResult::NoResponse
             }
@@ -123,30 +130,27 @@ impl UiHandler for InventoryHandler {
 }
 
 fn try_use_item(ecs: &mut World, input: Entity) -> RunState {
-    let is_ranged = ecs.read_storage::<Ranged>();
-    let is_item_ranged = is_ranged.get(input);
-    if let Some(is_item_ranged) = is_item_ranged {
-        let player_pos = ecs.read_resource::<PlayerPos>();
-        RunState::ShowUi {
-            screen: UiScreen::Targeting {
-                range: is_item_ranged.range,
-                item: input,
-                selection: player_pos.pos,
-            },
-        }
-    } else {
-        let mut intent = ecs.write_storage::<WantsToUseItem>();
-        intent
-            .insert(
-                ecs.read_resource::<PlayerEntity>().entity,
-                WantsToUseItem {
+    {
+        let is_ranged = ecs.read_storage::<Ranged>();
+        let is_item_ranged = is_ranged.get(input);
+        if let Some(is_item_ranged) = is_item_ranged {
+            let player_pos = ecs.read_resource::<PlayerPos>();
+            return RunState::ShowUi {
+                screen: UiScreen::Targeting {
+                    range: is_item_ranged.range,
                     item: input,
-                    target: None,
+                    selection: player_pos.pos,
                 },
-            )
-            .expect("Unable to insert intent");
-        RunState::PlayerTurn
+            };
+        }
     }
+    let action = UseItemAction {
+        item: input,
+        target: None,
+    };
+    let player_entity = ecs.read_resource::<PlayerEntity>().entity;
+    action.run(player_entity, ecs);
+    RunState::PlayerTurn
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -218,16 +222,12 @@ impl UiHandler for TargetingHandler {
     fn handle(&self, ecs: &mut World, input: LookCommand) -> RunState {
         match input {
             LookCommand::Select(selection) => {
-                let mut intent = ecs.write_storage::<WantsToUseItem>();
-                intent
-                    .insert(
-                        ecs.read_resource::<PlayerEntity>().entity,
-                        WantsToUseItem {
-                            item: self.item,
-                            target: Some(selection),
-                        },
-                    )
-                    .expect("Unable to insert intent");
+                let action = UseItemAction {
+                    item: self.item,
+                    target: Some(selection),
+                };
+                let player_entity = ecs.read_resource::<PlayerEntity>().entity;
+                action.run(player_entity, ecs);
                 RunState::PlayerTurn
             }
             LookCommand::Inspect(point) => RunState::ShowUi {
@@ -332,17 +332,16 @@ impl UiHandler for UseItemHandler {
         let player_entity = ecs.read_resource::<PlayerEntity>().entity;
         match input {
             ItemUsage::Drop => {
-                ecs.write_storage::<WantsToDropItem>()
-                    .insert(player_entity, WantsToDropItem { item: self.item })
-                    .expect("could not insert intent");
+                let action = DropItemAction { target: self.item };
+                action.run(player_entity, ecs);
             }
             ItemUsage::Equip => {
-                return try_use_item(ecs, self.item);
+                let action = EquipItemAction { target: self.item };
+                action.run(player_entity, ecs);
             }
             ItemUsage::Unequip => {
-                ecs.write_storage::<WantsToRemoveItem>()
-                    .insert(player_entity, WantsToRemoveItem { item: self.item })
-                    .expect("could not insert intent");
+                let action = UnequipItemAction { target: self.item };
+                action.run(player_entity, ecs);
             }
             ItemUsage::Use => {
                 return try_use_item(ecs, self.item);

@@ -33,7 +33,6 @@ pub struct State<'a, 'b> {
     pub ecs: World,
     gameplay_systems: Dispatcher<'a, 'b>,
     indexing_systems: Dispatcher<'a, 'b>,
-    actor_systems: Dispatcher<'a, 'b>,
 }
 
 impl<'a, 'b> State<'a, 'b> {
@@ -41,7 +40,7 @@ impl<'a, 'b> State<'a, 'b> {
         self.gameplay_systems.dispatch(&self.ecs);
         self.ecs.maintain();
         self.indexing_systems.dispatch(&self.ecs);
-        self.actor_systems.dispatch(&self.ecs);
+        (MonsterAI {}).run(&mut self.ecs);
     }
 
     fn draw_renderables(&mut self, ctx: &mut BTerm) {
@@ -147,14 +146,21 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
     let mut indexing_dispatcher = with_indexing_systems(DispatcherBuilder::new()).build();
     indexing_dispatcher.setup(&mut world);
 
-    let mut actors_dispatcher = with_actors_systems(DispatcherBuilder::new()).build();
-    actors_dispatcher.setup(&mut world);
-
     world.register::<Renderable>();
     world.register::<Item>();
     world.register::<ProvidesHealing>();
     world.register::<Ranged>();
     world.register::<InflictsDamage>();
+    world.register::<Consumable>();
+    world.register::<Monster>();
+    world.register::<Equippable>();
+    world.register::<MeleePowerBonus>();
+    world.register::<AreaOfEffect>();
+    world.register::<DefenseBonus>();
+    world.register::<Confused>();
+    world.register::<Confusion>();
+    world.register::<Inventory>();
+    world.register::<Equipment>();
 
     world.register::<SimpleMarker<SerializeMe>>();
     world.register::<SerializationHelper>();
@@ -165,7 +171,6 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
         ecs: world,
         gameplay_systems: gameplay_dispatcher,
         indexing_systems: indexing_dispatcher,
-        actor_systems: actors_dispatcher,
     };
 
     let (rooms, map) = map::Map::new_map_rooms_and_corridors(width, height);
