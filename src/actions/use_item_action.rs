@@ -1,7 +1,7 @@
 use bracket_lib::prelude::*;
-use specs::{Entity, WorldExt, shred::Fetch};
+use specs::{Entity, WorldExt};
 
-use crate::{components::*, gamelog::GameLog, map::Map, systems::ParticleBuilder};
+use crate::{components::*, gamelog::GameLog, map::{Map, Decal}, systems::ParticleBuilder};
 
 use super::{has_component, Action};
 
@@ -13,7 +13,7 @@ pub struct UseItemAction {
 impl Action for UseItemAction {
     fn run(&self, actor: Entity, ecs: &mut specs::World) {
         let mut used_item: bool = false;
-        let map: Fetch<Map> = ecs.read_resource();
+        let mut map = ecs.write_resource::<Map>();
         let mut particle_builder = ecs.write_resource::<ParticleBuilder>();
         let is_player = has_component::<Player>(ecs, actor);
         let mut log = ecs.write_resource::<GameLog>();
@@ -104,6 +104,8 @@ impl Action for UseItemAction {
                 for target in targets.iter() {
                     let target_stats = combat_stats_storage.get_mut(*target);
                     if let Some(target_stats) = target_stats {
+                        let target_position = position_storage.get(*target).unwrap().pos;
+                        map.decal_tiles.insert(target_position, Decal::blood());
                         target_stats.deal_damage(damage.damage);
                     }
                     if is_player {

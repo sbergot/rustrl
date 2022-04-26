@@ -40,7 +40,7 @@ impl<'a, 'b> State<'a, 'b> {
         self.gameplay_systems.dispatch(&self.ecs);
         self.ecs.maintain();
         self.indexing_systems.dispatch(&self.ecs);
-        (MonsterAI {}).run(&mut self.ecs);
+        self.ecs.maintain();
     }
 
     fn draw_renderables(&mut self, ctx: &mut BTerm) {
@@ -83,6 +83,7 @@ impl GameState for State<'static, 'static> {
                 newrunstate = RunState::AwaitingInput;
             }
             RunState::AwaitingInput => {
+                self.run_systems();
                 newrunstate = player::player_input(&mut self.ecs, ctx.key);
             }
             RunState::PlayerTurn => {
@@ -91,6 +92,7 @@ impl GameState for State<'static, 'static> {
             }
             RunState::MonsterTurn => {
                 self.run_systems();
+                run_monster_ai(&mut self.ecs);
                 newrunstate = RunState::AwaitingInput;
             }
             RunState::ShowUi { screen } => {

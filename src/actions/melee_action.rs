@@ -36,8 +36,7 @@ impl Action for MeleeAction {
         let target_name = name_storage.get(self.target).unwrap();
 
         let storage = ecs.read_storage::<Position>();
-        let pos = storage.get(actor);
-
+        let target_pos = storage.get(self.target);
 
         if stats.hp > 0 {
             let mut offensive_bonus = 0;
@@ -56,7 +55,7 @@ impl Action for MeleeAction {
                     defensive_bonus += defense_bonus;
                 }
 
-                if let Some(pos) = pos {
+                if let Some(pos) = target_pos {
                     particle_builder.request(
                         pos.pos,
                         RGB::named(ORANGE),

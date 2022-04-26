@@ -4,7 +4,7 @@ use crate::{components::*, entity_containers::{EntityVec, EntityHashMap}};
 use bracket_lib::prelude::*;
 use specs::{saveload::*, *};
 
-const MAX_MONSTERS: i32 = 4;
+const MAX_SPAWNED: i32 = 5;
 
 pub fn player(ecs: &mut World, pos: Point) -> Entity {
     ecs.create_entity()
@@ -65,7 +65,7 @@ pub fn spawn_room(ecs: &mut World, room: &Rect) {
     // Scope to keep the borrow checker happy
     {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        let num_spawns = rng.roll_dice(1, MAX_MONSTERS + 3) - 3;
+        let num_spawns = rng.roll_dice(1, MAX_SPAWNED + 3) - 3;
 
         for _i in 0..num_spawns {
             let mut added = false;
@@ -142,8 +142,8 @@ impl RandomTable {
 
 fn room_table() -> RandomTable {
     RandomTable::new()
-        .add(goblin, 10)
-        .add(orc, 1)
+        .add(goblin, 20)
+        .add(orc, 5)
         .add(health_potion, 7)
         .add(fireball_scroll, 2)
         .add(confusion_scroll, 2)

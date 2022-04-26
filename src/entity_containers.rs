@@ -164,6 +164,7 @@ where
 pub struct EntityRefCell<T>(RefCell<T>);
 
 impl<T> EntityRefCell<T> {
+    #[allow(dead_code)]
     pub fn new(val: T) -> EntityRefCell<T> {
         EntityRefCell(RefCell::new(val))
     }
