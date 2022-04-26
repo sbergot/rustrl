@@ -1,7 +1,7 @@
 use bracket_lib::prelude::*;
 use specs::{Entity, WorldExt};
 
-use crate::{components::*, gamelog::GameLog, systems::ParticleBuilder};
+use crate::{components::*, gamelog::GameLog, systems::ParticleBuilder, map::{Map, Decal}};
 
 use super::{map_equipped_items_comp, Action};
 
@@ -56,6 +56,9 @@ impl Action for MeleeAction {
                 }
 
                 if let Some(pos) = target_pos {
+                    let mut map = ecs.write_resource::<Map>();
+                    map.decal_tiles.insert(pos.pos, Decal::blood());
+
                     particle_builder.request(
                         pos.pos,
                         RGB::named(ORANGE),
