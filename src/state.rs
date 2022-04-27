@@ -1,34 +1,16 @@
 use bracket_lib::prelude::*;
-use specs::prelude::*;
-use specs::saveload::*;
+use specs::{prelude::*, saveload::*};
 
-use crate::components::*;
-use crate::gamelog::GameLog;
-use crate::gui::game_ui::*;
-use crate::gui::gui_handlers::*;
-use crate::gui::main_menu::*;
-use crate::map::Map;
-use crate::map_generation;
-use crate::player;
-use crate::player::PlayerEntity;
-use crate::player::PlayerPos;
-use crate::points_of_interest::PointsOfInterest;
-use crate::spawner;
-use crate::systems::*;
-
-#[derive(PartialEq, Copy, Clone)]
-pub enum RunState {
-    AwaitingInput,
-    PreRun,
-    PlayerTurn,
-    MonsterTurn,
-    ShowUi { screen: UiScreen },
-    MainMenu { menu_selection: MainMenuSelection },
-    SaveGame,
-    GameOver,
-}
-
-pub struct Selection(Option<Point>);
+use crate::{
+    components::*,
+    gamelog::GameLog,
+    gui::{game_ui::*, gui_handlers::*, main_menu::*},
+    map::Map,
+    map_generation, player,
+    resources::{PlayerEntity, PlayerPos, PointsOfInterest, RunState},
+    spawner,
+    systems::*,
+};
 
 pub struct State<'a, 'b> {
     pub ecs: World,
@@ -125,7 +107,7 @@ impl GameState for State<'static, 'static> {
                 }
             }
             RunState::MainMenu { .. } => {
-                let result = main_menu(self, ctx);
+                let result = main_menu(newrunstate, ctx);
                 match result {
                     MainMenuResult::NoSelection { selected } => {
                         newrunstate = RunState::MainMenu {
@@ -231,7 +213,6 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
 
     gs.ecs.insert(PlayerPos { pos: room_center });
 
-    gs.ecs.insert(Selection(None));
     gs.ecs.insert(PointsOfInterest::new());
 
     for room in rooms.iter().skip(1) {

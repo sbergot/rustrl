@@ -1,7 +1,7 @@
 use crate::actions::*;
 use crate::components::*;
 use crate::map::Map;
-use crate::player::{PlayerEntity, PlayerPos};
+use crate::resources::{PlayerEntity, PlayerPos};
 use bracket_lib::prelude::*;
 use specs::prelude::*;
 

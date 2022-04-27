@@ -10,7 +10,7 @@ use specs::{error::NoError, saveload::*, *};
 use crate::{
     components::*,
     map::Map,
-    player::{PlayerEntity, PlayerPos},
+    resources::{PlayerEntity, PlayerPos},
 };
 
 const SAVE_PATH: &'static str = "./savegame.json";

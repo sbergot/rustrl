@@ -6,7 +6,7 @@ use specs::*;
 use crate::{
     components::*,
     gui::gui_handlers::ItemUsage,
-    player::{PlayerEntity, PlayerPos},
+    resources::{PlayerEntity, PlayerPos},
 };
 
 pub fn get_usage_options(ecs: &mut World, item: Entity) -> Vec<(String, ItemUsage)> {

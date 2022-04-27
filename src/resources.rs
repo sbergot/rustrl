@@ -1,4 +1,27 @@
 use bracket_lib::prelude::Point;
+use specs::Entity;
+
+use crate::gui::{gui_handlers::UiScreen, main_menu::MainMenuSelection};
+
+pub struct PlayerPos {
+    pub pos: Point,
+}
+
+pub struct PlayerEntity {
+    pub entity: Entity,
+}
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum RunState {
+    AwaitingInput,
+    PreRun,
+    PlayerTurn,
+    MonsterTurn,
+    ShowUi { screen: UiScreen },
+    MainMenu { menu_selection: MainMenuSelection },
+    SaveGame,
+    GameOver,
+}
 
 pub struct PointsOfInterest(Vec<Point>);
 

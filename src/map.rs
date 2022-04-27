@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use specs::*;
 use std::collections::HashMap;
 
-use crate::points_of_interest::PointsOfInterest;
+use crate::resources::PointsOfInterest;
 
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum TileType {

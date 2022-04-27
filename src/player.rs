@@ -2,20 +2,12 @@ use crate::actions::*;
 use crate::gamelog::GameLog;
 use crate::gui::gui_handlers::UiScreen;
 use crate::map::Map;
-use crate::state::RunState;
+use crate::resources::{PlayerEntity, PlayerPos, RunState};
 use crate::{components::*, input::*};
 
 use bracket_lib::prelude::*;
 use specs::prelude::*;
 use std::cmp::{max, min};
-
-pub struct PlayerPos {
-    pub pos: Point,
-}
-
-pub struct PlayerEntity {
-    pub entity: Entity,
-}
 
 pub fn player_input(world: &mut World, key: Option<VirtualKeyCode>) -> RunState {
     let cmd = map_all(key, &[map_direction, map_other_commands]);

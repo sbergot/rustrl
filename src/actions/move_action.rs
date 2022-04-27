@@ -1,7 +1,7 @@
 use bracket_lib::prelude::Point;
 use specs::WorldExt;
 
-use crate::{map::Map, components::*, player::PlayerPos};
+use crate::{map::Map, components::*, resources::PlayerPos};
 
 use super::{Action, has_component};
 

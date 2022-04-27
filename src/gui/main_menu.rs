@@ -1,7 +1,5 @@
 use bracket_lib::prelude::*;
-use specs::WorldExt;
-
-use crate::state::*;
+use crate::resources::RunState;
 use crate::systems::does_save_exist;
 
 #[derive(PartialEq, Copy, Clone)]
@@ -17,13 +15,12 @@ pub enum MainMenuResult {
     Selected { selected: MainMenuSelection },
 }
 
-pub fn main_menu(gs : &mut State, ctx : &mut BTerm) -> MainMenuResult {
+pub fn main_menu(runstate: RunState, ctx : &mut BTerm) -> MainMenuResult {
     let save_exists = does_save_exist();
-    let runstate = gs.ecs.read_resource::<RunState>();
 
     ctx.print_color_centered(15, RGB::named(YELLOW), RGB::named(BLACK), "Rust Roguelike Tutorial");
 
-    if let RunState::MainMenu{ menu_selection : selection } = *runstate {
+    if let RunState::MainMenu{ menu_selection : selection } = runstate {
         if selection == MainMenuSelection::NewGame {
             ctx.print_color_centered(24, RGB::named(MAGENTA), RGB::named(BLACK), "Begin New Game");
         } else {

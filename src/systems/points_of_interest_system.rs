@@ -3,7 +3,7 @@ use specs::prelude::*;
 use crate::{
     components::{Player, Viewshed},
     map::Map,
-    points_of_interest::PointsOfInterest,
+    resources::PointsOfInterest,
 };
 
 pub struct PointsOfInterestSystem {}

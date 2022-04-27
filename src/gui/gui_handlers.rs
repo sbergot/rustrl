@@ -6,10 +6,8 @@ use crate::{
     components::*,
     gui::{components::*, game_ui::*},
     input::*,
-    player::{PlayerEntity, PlayerPos},
-    points_of_interest::PointsOfInterest,
     queries::*,
-    state::RunState,
+    resources::{PlayerEntity, PlayerPos, PointsOfInterest, RunState},
 };
 
 #[derive(PartialEq, Copy, Clone)]

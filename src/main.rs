@@ -5,7 +5,6 @@ mod gui;
 mod input;
 mod map;
 mod player;
-mod points_of_interest;
 mod spawner;
 mod state;
 mod systems;
@@ -13,6 +12,7 @@ mod queries;
 mod actions;
 mod entity_containers;
 mod map_generation;
+mod resources;
 
 use bracket_lib::prelude::{main_loop, BError, BTermBuilder};
 use constants::*;
