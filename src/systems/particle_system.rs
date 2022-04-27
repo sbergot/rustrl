@@ -90,14 +90,7 @@ impl ParticleBuilder {
         }
     }
 
-    pub fn request(
-        &mut self,
-        pos: Point,
-        fg: RGB,
-        bg: RGB,
-        glyph: FontCharType,
-        lifetime: f32,
-    ) {
+    pub fn request(&mut self, pos: Point, fg: RGB, bg: RGB, glyph: FontCharType, lifetime: f32) {
         self.requests.push(ParticleRequest {
             pos,
             fg,

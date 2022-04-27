@@ -2,6 +2,7 @@ use specs::prelude::*;
 
 use crate::{
     components::{BlocksTile, Position},
+    game_map::GameMap,
     map::Map,
 };
 
@@ -9,7 +10,7 @@ pub struct MapIndexingSystem {}
 
 impl<'a> System<'a> for MapIndexingSystem {
     type SystemData = (
-        WriteExpect<'a, Map>,
+        WriteExpect<'a, GameMap>,
         ReadStorage<'a, Position>,
         ReadStorage<'a, BlocksTile>,
         Entities<'a>,

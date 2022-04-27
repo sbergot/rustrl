@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{components::*, entity_containers::{EntityVec, EntityHashMap}};
+use crate::{
+    components::*,
+    entity_containers::{EntityHashMap, EntityVec},
+};
 use bracket_lib::prelude::*;
 use specs::{saveload::*, *};
 
@@ -21,8 +24,12 @@ pub fn player(ecs: &mut World, pos: Point) -> Entity {
             name: "Player".to_string(),
         })
         .with(CombatStats::new(30, 2, 5))
-        .with(Inventory { items: EntityVec::new() })
-        .with(Equipment { slots: EntityHashMap::new() })
+        .with(Inventory {
+            items: EntityVec::new(),
+        })
+        .with(Equipment {
+            slots: EntityHashMap::new(),
+        })
         .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }

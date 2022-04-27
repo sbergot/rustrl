@@ -1,18 +1,19 @@
+mod actions;
 mod components;
 mod constants;
+mod entity_containers;
+mod game_map;
 mod gamelog;
 mod gui;
 mod input;
 mod map;
+mod map_generation;
 mod player;
+mod queries;
+mod resources;
 mod spawner;
 mod state;
 mod systems;
-mod queries;
-mod actions;
-mod entity_containers;
-mod map_generation;
-mod resources;
 
 use bracket_lib::prelude::{main_loop, BError, BTermBuilder};
 use constants::*;

@@ -6,7 +6,7 @@ use specs_derive::{Component, ConvertSaveload};
 
 use crate::{
     entity_containers::{EntityHashMap, EntityVec},
-    map::Map,
+    game_map::GameMap,
 };
 
 #[derive(Component, ConvertSaveload, Clone)]
@@ -159,5 +159,5 @@ pub struct SerializeMe;
 
 #[derive(Component, Serialize, Deserialize, Clone)]
 pub struct SerializationHelper {
-    pub map: Map,
+    pub map: GameMap,
 }

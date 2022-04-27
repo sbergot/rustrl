@@ -44,7 +44,11 @@ impl PointsOfInterest {
                 return Some(self.0[(idx + 1) % self.0.len()]);
             }
         }
-        return if self.0.is_empty() { None } else { Some(self.0[0]) };
+        return if self.0.is_empty() {
+            None
+        } else {
+            Some(self.0[0])
+        };
     }
 
     pub fn contains(&self, pos: Point) -> bool {

@@ -27,7 +27,11 @@ pub fn has_component<T: Component>(ecs: &World, entity: Entity) -> bool {
     ecs.read_storage::<T>().contains(entity)
 }
 
-pub fn map_equipped_items_comp<T: Component, R>(ecs: &World, owner: Entity, map: fn(&T) -> R) -> Vec<R> {
+pub fn map_equipped_items_comp<T: Component, R>(
+    ecs: &World,
+    owner: Entity,
+    map: fn(&T) -> R,
+) -> Vec<R> {
     let equippement_storage = ecs.read_storage::<Equipment>();
     let equipment = equippement_storage.get(owner);
     if let Some(equipment) = equipment {

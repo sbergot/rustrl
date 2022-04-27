@@ -1,9 +1,9 @@
 use bracket_lib::prelude::Point;
 use specs::WorldExt;
 
-use crate::{map::Map, components::*, resources::PlayerPos};
+use crate::{components::*, game_map::GameMap, map::Map, resources::PlayerPos};
 
-use super::{Action, has_component};
+use super::{has_component, Action};
 
 pub struct MoveAction {
     pub target: Point,
@@ -11,7 +11,7 @@ pub struct MoveAction {
 
 impl Action for MoveAction {
     fn run(&self, actor: specs::Entity, ecs: &mut specs::World) {
-        let mut map = ecs.write_resource::<Map>();
+        let mut map = ecs.write_resource::<GameMap>();
         let mut player_pos = ecs.write_resource::<PlayerPos>();
 
         let mut storage = ecs.write_storage::<Viewshed>();

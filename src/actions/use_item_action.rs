@@ -1,7 +1,13 @@
 use bracket_lib::prelude::*;
 use specs::{Entity, WorldExt};
 
-use crate::{components::*, gamelog::GameLog, map::{Map, Decal}, systems::ParticleBuilder};
+use crate::{
+    components::*,
+    game_map::{Decal, GameMap},
+    gamelog::GameLog,
+    map::Map,
+    systems::ParticleBuilder,
+};
 
 use super::{has_component, Action};
 
@@ -13,7 +19,7 @@ pub struct UseItemAction {
 impl Action for UseItemAction {
     fn run(&self, actor: Entity, ecs: &mut specs::World) {
         let mut used_item: bool = false;
-        let mut map = ecs.write_resource::<Map>();
+        let mut map = ecs.write_resource::<GameMap>();
         let mut particle_builder = ecs.write_resource::<ParticleBuilder>();
         let is_player = has_component::<Player>(ecs, actor);
         let mut log = ecs.write_resource::<GameLog>();
@@ -180,7 +186,7 @@ impl Action for UseItemAction {
             if let Some(index) = inventory.items.iter().position(|ent| *ent == self.item) {
                 inventory.items.remove(index);
             }
-    
+
             let entities = ecs.entities();
             entities.delete(self.item).expect("Delete failed");
         }

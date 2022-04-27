@@ -3,6 +3,7 @@ use specs::prelude::*;
 
 use crate::{
     components::{Player, Position, Viewshed},
+    game_map::GameMap,
     map::Map,
 };
 
@@ -10,7 +11,7 @@ pub struct VisibilitySystem {}
 
 impl<'a> System<'a> for VisibilitySystem {
     type SystemData = (
-        WriteExpect<'a, Map>,
+        WriteExpect<'a, GameMap>,
         WriteStorage<'a, Viewshed>,
         WriteStorage<'a, Position>,
         ReadStorage<'a, Player>,

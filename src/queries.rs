@@ -40,7 +40,9 @@ pub fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
     let names = ecs.read_storage::<Name>();
     let storage = ecs.read_storage::<Inventory>();
     let player_inventory = storage.get(player_entity.entity).unwrap();
-    let options: Vec<(String, Entity)> = player_inventory.items.iter()
+    let options: Vec<(String, Entity)> = player_inventory
+        .items
+        .iter()
         .map(|entity| (names.get(*entity).unwrap().name.clone(), *entity))
         .collect();
 
@@ -68,7 +70,9 @@ pub fn get_equipped_options(ecs: &mut World) -> Vec<(String, Entity)> {
     let storage = ecs.read_storage::<Equipment>();
     let player_equipment = storage.get(player_entity.entity).unwrap();
 
-    let options: Vec<(String, Entity)> = player_equipment.slots.values()
+    let options: Vec<(String, Entity)> = player_equipment
+        .slots
+        .values()
         .map(|entity| (names.get(*entity).unwrap().name.clone(), *entity))
         .collect();
     options

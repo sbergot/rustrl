@@ -1,4 +1,5 @@
 use crate::actions::*;
+use crate::game_map::GameMap;
 use crate::gamelog::GameLog;
 use crate::gui::gui_handlers::UiScreen;
 use crate::map::Map;
@@ -56,7 +57,7 @@ fn try_move_player(direction: Direction, ecs: &mut World) {
             storage.get(player_entity).unwrap().pos
         };
         let combat_stats = ecs.read_storage::<CombatStats>();
-        let map = ecs.read_resource::<Map>();
+        let map = ecs.read_resource::<GameMap>();
 
         let offset = get_direction_offset(direction);
 
@@ -69,7 +70,7 @@ fn try_move_player(direction: Direction, ecs: &mut World) {
 }
 
 fn get_player_action(
-    map: &Map,
+    map: &GameMap,
     player_pos: Point,
     offset: Point,
     combat_stats: &ReadStorage<CombatStats>,

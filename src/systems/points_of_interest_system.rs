@@ -2,6 +2,7 @@ use specs::prelude::*;
 
 use crate::{
     components::{Player, Viewshed},
+    game_map::GameMap,
     map::Map,
     resources::PointsOfInterest,
 };
@@ -10,7 +11,7 @@ pub struct PointsOfInterestSystem {}
 
 impl<'a> System<'a> for PointsOfInterestSystem {
     type SystemData = (
-        ReadExpect<'a, Map>,
+        ReadExpect<'a, GameMap>,
         WriteExpect<'a, PointsOfInterest>,
         ReadStorage<'a, Viewshed>,
         ReadStorage<'a, Player>,

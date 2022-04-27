@@ -12,13 +12,7 @@ pub fn show_selection<T>(ctx: &mut BTerm, title: &str, options: &Vec<(String, T)
         RGB::named(WHITE),
         RGB::named(BLACK),
     );
-    ctx.print_color(
-        18,
-        y - 2,
-        RGB::named(YELLOW),
-        RGB::named(BLACK),
-        title,
-    );
+    ctx.print_color(18, y - 2, RGB::named(YELLOW), RGB::named(BLACK), title);
     ctx.print_color(
         18,
         y + count as i32 + 1,
@@ -28,8 +22,7 @@ pub fn show_selection<T>(ctx: &mut BTerm, title: &str, options: &Vec<(String, T)
     );
 
     let mut j = 0;
-    for (name, _entity) in options
-    {
+    for (name, _entity) in options {
         ctx.set(17, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437('('));
         ctx.set(
             18,

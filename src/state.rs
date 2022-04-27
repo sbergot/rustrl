@@ -3,6 +3,7 @@ use specs::{prelude::*, saveload::*};
 
 use crate::{
     components::*,
+    game_map::GameMap,
     gamelog::GameLog,
     gui::{game_ui::*, gui_handlers::*, main_menu::*},
     map::Map,
@@ -29,7 +30,7 @@ impl<'a, 'b> State<'a, 'b> {
     fn draw_renderables(&mut self, ctx: &mut BTerm) {
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
-        let map = self.ecs.read_resource::<Map>();
+        let map = self.ecs.read_resource::<GameMap>();
         let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
         data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
         for (pos, render) in data {
@@ -72,7 +73,7 @@ impl GameState for State<'static, 'static> {
         match newrunstate {
             RunState::MainMenu { .. } => {}
             _ => {
-                Map::draw_map(&self.ecs, ctx);
+                GameMap::draw_map(&self.ecs, ctx);
                 self.draw_renderables(ctx);
             }
         }
@@ -192,7 +193,8 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
         indexing_systems: indexing_dispatcher,
     };
 
-    let mut generator = map_generation::MapGenerator::new(width, height);
+    let mut generator =
+        map_generation::rooms_corridors::RoomsCorridorsGenerator::new(width, height);
     let (rooms, map) = generator.new_map_rooms_and_corridors();
 
     gs.ecs.insert(map);

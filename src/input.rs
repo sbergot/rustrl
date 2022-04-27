@@ -1,4 +1,4 @@
-use bracket_lib::prelude::{VirtualKeyCode, Point};
+use bracket_lib::prelude::{Point, VirtualKeyCode};
 
 #[derive(Clone, Copy)]
 pub enum Command {
@@ -85,7 +85,10 @@ pub fn map_other_commands(key: VirtualKeyCode) -> Option<Command> {
     }
 }
 
-pub fn map_all(key: Option<VirtualKeyCode>, mappings: &[fn(key: VirtualKeyCode) -> Option<Command>]) -> Option<Command> {
+pub fn map_all(
+    key: Option<VirtualKeyCode>,
+    mappings: &[fn(key: VirtualKeyCode) -> Option<Command>],
+) -> Option<Command> {
     match key {
         None => None,
         Some(key) => {

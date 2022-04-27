@@ -1,15 +1,10 @@
 use bracket_lib::prelude::*;
 use specs::prelude::*;
 
-use crate::{
-    components::*,
-    constants::UI_HEIGHT,
-    gamelog::GameLog,
-    map::Map,
-};
+use crate::{components::*, constants::UI_HEIGHT, game_map::GameMap, gamelog::GameLog, map::Map};
 
 pub fn draw_ui(ecs: &World, ctx: &mut BTerm) {
-    let map = ecs.read_resource::<Map>();
+    let map = ecs.read_resource::<GameMap>();
     ctx.draw_box(
         0,
         map.height,
@@ -58,7 +53,7 @@ pub fn draw_ui(ecs: &World, ctx: &mut BTerm) {
 }
 
 pub fn draw_tooltips(ecs: &World, ctx: &mut BTerm, pos: Point) {
-    let map = ecs.read_resource::<Map>();
+    let map = ecs.read_resource::<GameMap>();
     let names = ecs.read_storage::<Name>();
     let positions = ecs.read_storage::<Position>();
 
@@ -139,18 +134,41 @@ pub fn draw_tooltips(ecs: &World, ctx: &mut BTerm, pos: Point) {
 }
 
 #[derive(PartialEq, Copy, Clone)]
-pub enum GameOverResult { NoSelection, QuitToMenu }
+pub enum GameOverResult {
+    NoSelection,
+    QuitToMenu,
+}
 
-pub fn game_over(ctx : &mut BTerm) -> GameOverResult {
+pub fn game_over(ctx: &mut BTerm) -> GameOverResult {
     ctx.cls();
-    ctx.print_color_centered(15, RGB::named(YELLOW), RGB::named(BLACK), "Your journey has ended!");
-    ctx.print_color_centered(17, RGB::named(WHITE), RGB::named(BLACK), "One day, we'll tell you all about how you did.");
-    ctx.print_color_centered(18, RGB::named(WHITE), RGB::named(BLACK), "That day, sadly, is not in this chapter..");
+    ctx.print_color_centered(
+        15,
+        RGB::named(YELLOW),
+        RGB::named(BLACK),
+        "Your journey has ended!",
+    );
+    ctx.print_color_centered(
+        17,
+        RGB::named(WHITE),
+        RGB::named(BLACK),
+        "One day, we'll tell you all about how you did.",
+    );
+    ctx.print_color_centered(
+        18,
+        RGB::named(WHITE),
+        RGB::named(BLACK),
+        "That day, sadly, is not in this chapter..",
+    );
 
-    ctx.print_color_centered(20, RGB::named(MAGENTA), RGB::named(BLACK), "Press any key to return to the menu.");
+    ctx.print_color_centered(
+        20,
+        RGB::named(MAGENTA),
+        RGB::named(BLACK),
+        "Press any key to return to the menu.",
+    );
 
     match ctx.key {
         None => GameOverResult::NoSelection,
-        Some(_) => GameOverResult::QuitToMenu
+        Some(_) => GameOverResult::QuitToMenu,
     }
 }

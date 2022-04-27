@@ -3,13 +3,12 @@ use std::{
     path::Path,
 };
 
-
 #[allow(deprecated)]
 use specs::{error::NoError, saveload::*, *};
 
 use crate::{
     components::*,
-    map::Map,
+    game_map::GameMap,
     resources::{PlayerEntity, PlayerPos},
 };
 
@@ -32,7 +31,7 @@ macro_rules! serialize_individually {
 #[allow(deprecated)]
 pub fn save_game(ecs: &mut World) {
     // Create helper
-    let mapcopy = ecs.get_mut::<Map>().unwrap().clone();
+    let mapcopy = ecs.get_mut::<GameMap>().unwrap().clone();
     let savehelper = ecs
         .create_entity()
         .with(SerializationHelper { map: mapcopy })
@@ -153,7 +152,7 @@ pub fn load_game(ecs: &mut World) {
         let player = ecs.read_storage::<Player>();
         let position = ecs.read_storage::<Position>();
         for (e, h) in (&entities, &helper).join() {
-            let mut worldmap = ecs.write_resource::<Map>();
+            let mut worldmap = ecs.write_resource::<GameMap>();
             *worldmap = h.map.clone();
             worldmap.entities_tiles = vec![Vec::new(); (worldmap.width * worldmap.height) as usize];
             deleteme = Some(e);

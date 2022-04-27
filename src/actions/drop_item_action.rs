@@ -26,6 +26,8 @@ impl Action for DropItemAction {
 
         let mut storage = ecs.write_component::<Position>();
         let position = storage.get(actor).unwrap().clone();
-        storage.insert(self.target, position).expect("Unable to insert position");
+        storage
+            .insert(self.target, position)
+            .expect("Unable to insert position");
     }
 }

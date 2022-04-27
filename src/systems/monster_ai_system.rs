@@ -1,12 +1,13 @@
 use crate::actions::*;
 use crate::components::*;
+use crate::game_map::GameMap;
 use crate::map::Map;
 use crate::resources::{PlayerEntity, PlayerPos};
 use bracket_lib::prelude::*;
 use specs::prelude::*;
 
 type SystemData<'a> = (
-    ReadExpect<'a, Map>,
+    ReadExpect<'a, GameMap>,
     ReadExpect<'a, PlayerPos>,
     ReadExpect<'a, PlayerEntity>,
     ReadStorage<'a, Viewshed>,
@@ -31,7 +32,9 @@ pub fn run_monster_ai(world: &mut World) {
                 entities,
             ): SystemData = world.system_data();
 
-        for (viewshed, monster_pos, _monster, entity) in (&viewshed, &pos, &monster, &entities).join() {
+        for (viewshed, monster_pos, _monster, entity) in
+            (&viewshed, &pos, &monster, &entities).join()
+        {
             let action = get_monster_action(
                 &mut confused,
                 entity,
@@ -59,7 +62,7 @@ fn get_monster_action(
     player_pos: Point,
     monster_pos: Point,
     player_entity: Entity,
-    map: &Map,
+    map: &GameMap,
 ) -> AnyAction {
     let mut can_act = true;
     let is_confused = confused.get_mut(entity);

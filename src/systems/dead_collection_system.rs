@@ -28,7 +28,7 @@ impl<'a> System<'a> for DeadCollection {
                     }
                     Some(_) => {
                         logs.log("You die".to_string());
-                    },
+                    }
                 }
                 dead.push(entity);
             }
