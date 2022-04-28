@@ -30,6 +30,8 @@ pub struct GameMap {
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
     pub blocked_tiles: Vec<bool>,
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
     pub decal_tiles: HashMap<Point, Decal>,
 
     #[serde(skip_serializing)]

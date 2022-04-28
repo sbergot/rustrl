@@ -23,7 +23,7 @@ macro_rules! serialize_individually {
             &$data.1,
             &mut $ser,
         )
-        .unwrap();
+        .expect(format!("Fail to serialize {}", stringify!($type)).as_str());
         )*
     };
 }

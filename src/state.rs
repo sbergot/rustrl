@@ -15,9 +15,10 @@ use crate::{
 };
 
 pub struct State<'a, 'b> {
-    pub ecs: World,
+    ecs: World,
     gameplay_systems: Dispatcher<'a, 'b>,
     indexing_systems: Dispatcher<'a, 'b>,
+    runstate: RunState,
 }
 
 impl<'a, 'b> State<'a, 'b> {
@@ -47,49 +48,47 @@ impl<'a, 'b> State<'a, 'b> {
         let player_entity = self.ecs.read_resource::<PlayerEntity>().entity;
         !entities.is_alive(player_entity)
     }
+
+    pub fn load_game(&mut self) {
+        load_game(&mut self.ecs);
+    }
 }
 
 impl<'a, 'b> Scene for State<'a, 'b> {
     fn tick(&mut self, ctx: &mut BTerm) -> SceneSignal {
+        if self.is_player_dead() {
+            return SceneSignal::Load(SceneType::GameOver);
+        }
+
         ctx.cls();
         particle_system::cull_dead_particles(&mut self.ecs, ctx);
 
-        let mut newrunstate;
-        {
-            let runstate = self.ecs.read_resource::<RunState>();
-            newrunstate = *runstate;
-        }
-
         GameMap::draw_map(&self.ecs, ctx);
         self.draw_renderables(ctx);
+        draw_ui(&self.ecs, ctx);
 
-        match newrunstate {
+        match self.runstate {
             RunState::PreRun => {
                 self.run_systems();
-                newrunstate = RunState::AwaitingInput;
+                self.runstate = RunState::AwaitingInput;
             }
             RunState::AwaitingInput => {
                 self.run_systems();
-
-                if self.is_player_dead() {
-                    return SceneSignal::Load(SceneType::GameOver);
-                } else {
-                    newrunstate = player::player_input(&mut self.ecs, ctx.key);
-                }
+                self.runstate = player::player_input(&mut self.ecs, ctx.key);
             }
             RunState::PlayerTurn => {
                 self.run_systems();
-                newrunstate = RunState::MonsterTurn;
+                self.runstate = RunState::MonsterTurn;
             }
             RunState::MonsterTurn => {
                 self.run_systems();
                 run_monster_ai(&mut self.ecs);
-                newrunstate = RunState::AwaitingInput;
+                self.runstate = RunState::AwaitingInput;
             }
             RunState::ShowUi { screen } => {
                 let res = run_screen(&mut self.ecs, ctx, screen);
                 if let Some(newstate) = res {
-                    newrunstate = newstate;
+                    self.runstate = newstate;
                 }
             }
             RunState::SaveGame => {
@@ -98,12 +97,6 @@ impl<'a, 'b> Scene for State<'a, 'b> {
             }
         }
 
-        {
-            let mut runwriter = self.ecs.write_resource::<RunState>();
-            *runwriter = newrunstate;
-        }
-
-        draw_ui(&self.ecs, ctx);
         SceneSignal::None
     }
 }
@@ -142,6 +135,7 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
         ecs: world,
         gameplay_systems: gameplay_dispatcher,
         indexing_systems: indexing_dispatcher,
+        runstate: RunState::PreRun
     };
 
     gs.ecs.insert(RandomNumberGenerator::new());
@@ -158,7 +152,6 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
     }
 
     gs.ecs.insert(map);
-    gs.ecs.insert(RunState::PreRun);
     gs.ecs.insert(GameLog {
         entries: vec!["Welcome to Rusty Roguelike".to_string()],
     });

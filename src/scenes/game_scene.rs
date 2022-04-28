@@ -4,7 +4,6 @@ use crate::{
     constants::{MAPHEIGHT, MAPWIDTH},
     scenes::{Scene, SceneSignal},
     state::{init_state, State},
-    systems::load_game,
 };
 
 pub struct GameScene<'a, 'b> {
@@ -25,7 +24,7 @@ impl<'a, 'b> GameScene<'a, 'b> {
 
     pub fn load_game() -> GameScene<'a, 'b> {
         let mut state = init_state(MAPWIDTH, MAPHEIGHT);
-        load_game(&mut state.ecs);
+        state.load_game();
         GameScene { state: state }
     }
 }
