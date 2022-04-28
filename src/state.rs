@@ -5,12 +5,12 @@ use crate::{
     components::*,
     game_map::GameMap,
     gamelog::GameLog,
-    gui::{game_ui::*, gui_handlers::*, main_menu::*},
+    gui::{game_ui::*, gui_handlers::*},
     map::Map,
     map_generation, player,
     resources::{PlayerEntity, PlayerPos, PointsOfInterest, RunState},
     spawner,
-    systems::*,
+    systems::*, scenes::{SceneSignal, SceneType, Scene},
 };
 
 pub struct State<'a, 'b> {
@@ -41,17 +41,6 @@ impl<'a, 'b> State<'a, 'b> {
         }
     }
 
-    fn game_over_cleanup(&mut self) {
-        // Delete everything
-        let mut to_delete = Vec::new();
-        for e in self.ecs.entities().join() {
-            to_delete.push(e);
-        }
-        for del in to_delete.iter() {
-            self.ecs.delete_entity(*del).expect("Deletion failed");
-        }
-    }
-
     fn is_player_dead(&mut self) -> bool {
         let entities = self.ecs.entities();
         let player_entity = self.ecs.read_resource::<PlayerEntity>().entity;
@@ -59,8 +48,8 @@ impl<'a, 'b> State<'a, 'b> {
     }
 }
 
-impl GameState for State<'static, 'static> {
-    fn tick(&mut self, ctx: &mut BTerm) {
+impl<'a, 'b> Scene for State<'a, 'b> {
+    fn tick(&mut self, ctx: &mut BTerm) -> SceneSignal {
         ctx.cls();
         particle_system::cull_dead_particles(&mut self.ecs, ctx);
 
@@ -70,13 +59,8 @@ impl GameState for State<'static, 'static> {
             newrunstate = *runstate;
         }
 
-        match newrunstate {
-            RunState::MainMenu { .. } => {}
-            _ => {
-                GameMap::draw_map(&self.ecs, ctx);
-                self.draw_renderables(ctx);
-            }
-        }
+        GameMap::draw_map(&self.ecs, ctx);
+        self.draw_renderables(ctx);
 
         match newrunstate {
             RunState::PreRun => {
@@ -87,7 +71,7 @@ impl GameState for State<'static, 'static> {
                 self.run_systems();
 
                 if self.is_player_dead() {
-                    newrunstate = RunState::GameOver;
+                    return SceneSignal::Load(SceneType::GameOver);
                 } else {
                     newrunstate = player::player_input(&mut self.ecs, ctx.key);
                 }
@@ -107,44 +91,9 @@ impl GameState for State<'static, 'static> {
                     newrunstate = newstate;
                 }
             }
-            RunState::MainMenu { .. } => {
-                let result = main_menu(newrunstate, ctx);
-                match result {
-                    MainMenuResult::NoSelection { selected } => {
-                        newrunstate = RunState::MainMenu {
-                            menu_selection: selected,
-                        }
-                    }
-                    MainMenuResult::Selected { selected } => match selected {
-                        MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
-                        MainMenuSelection::LoadGame => {
-                            load_game(&mut self.ecs);
-                            newrunstate = RunState::AwaitingInput;
-                        }
-                        MainMenuSelection::Quit => {
-                            ::std::process::exit(0);
-                        }
-                    },
-                }
-            }
             RunState::SaveGame => {
                 save_game(&mut self.ecs);
-
-                newrunstate = RunState::MainMenu {
-                    menu_selection: MainMenuSelection::LoadGame,
-                };
-            }
-            RunState::GameOver => {
-                let result = game_over(ctx);
-                match result {
-                    GameOverResult::NoSelection => {}
-                    GameOverResult::QuitToMenu => {
-                        self.game_over_cleanup();
-                        newrunstate = RunState::MainMenu {
-                            menu_selection: MainMenuSelection::NewGame,
-                        };
-                    }
-                }
+                return SceneSignal::Load(SceneType::MainMenu);
             }
         }
 
@@ -154,6 +103,7 @@ impl GameState for State<'static, 'static> {
         }
 
         draw_ui(&self.ecs, ctx);
+        SceneSignal::None
     }
 }
 
@@ -193,21 +143,24 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
         indexing_systems: indexing_dispatcher,
     };
 
+    gs.ecs.insert(RandomNumberGenerator::new());
+
     let mut generator =
         map_generation::rooms_corridors::RoomsCorridorsGenerator::new(width, height);
     let (rooms, map) = generator.new_map_rooms_and_corridors();
 
+    let room_center = rooms[0].center();
+    let player_entity = spawner::player(&mut gs.ecs, room_center);
+
+    for room in rooms.iter().skip(1) {
+        spawner::spawn_room(&mut gs.ecs, room);
+    }
+
     gs.ecs.insert(map);
-    gs.ecs.insert(RunState::MainMenu {
-        menu_selection: MainMenuSelection::NewGame,
-    });
+    gs.ecs.insert(RunState::PreRun);
     gs.ecs.insert(GameLog {
         entries: vec!["Welcome to Rusty Roguelike".to_string()],
     });
-    gs.ecs.insert(RandomNumberGenerator::new());
-
-    let room_center = rooms[0].center();
-    let player_entity = spawner::player(&mut gs.ecs, room_center);
 
     gs.ecs.insert(PlayerEntity {
         entity: player_entity,
@@ -216,10 +169,6 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
     gs.ecs.insert(PlayerPos { pos: room_center });
 
     gs.ecs.insert(PointsOfInterest::new());
-
-    for room in rooms.iter().skip(1) {
-        spawner::spawn_room(&mut gs.ecs, room);
-    }
 
     gs
 }

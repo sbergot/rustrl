@@ -1,10 +1,9 @@
 r6rl
 
 free hostages
-spot the ennemy before you are spotted
+spot the enemy before you are spotted
 -> explore safely
 -> combat is deadly
-
 
 - map generation
     - buildings + door + window
