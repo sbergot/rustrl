@@ -9,6 +9,7 @@ use crate::map::Map;
 pub enum TileType {
     Wall,
     Floor,
+    Door,
 }
 
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
@@ -124,5 +125,53 @@ impl GameMap {
     pub fn is_revealed_and_wall(&self, pos: Point) -> bool {
         let idx = self.xy_idx(pos);
         self.tiles[idx] == TileType::Wall && self.revealed_tiles[idx]
+    }
+
+    pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
+        let map = ecs.read_resource::<GameMap>();
+        let poi = ecs.read_resource::<PointsOfInterest>();
+
+        let mut y = 0;
+        let mut x = 0;
+        for (idx, tile) in map.tiles.iter().enumerate() {
+            if map.revealed_tiles[idx] {
+                let glyph;
+                let mut fg;
+                let pos = map.idx_xy(idx);
+                match tile {
+                    TileType::Floor => {
+                        glyph = to_cp437('.');
+                        fg = RGB::from_f32(0.0, 0.5, 0.5);
+                    }
+                    TileType::Wall => {
+                        glyph = map.wall_glyph(pos);
+                        fg = RGB::from_f32(0., 1.0, 0.);
+                    }
+                    TileType::Door => {
+                        glyph = to_cp437('+');
+                        fg = RGB::from_f32(0., 1.0, 0.);
+                    }
+                }
+                if !map.visible_tiles[idx] {
+                    fg = fg.to_greyscale()
+                }
+
+                let bg = if poi.contains(pos) {
+                    RGB::named(BLUE)
+                } else if let Some(decal) = map.decal_tiles.get(&pos) {
+                    decal.color
+                } else {
+                    RGB::from_f32(0., 0., 0.)
+                };
+                ctx.set(x, y, fg, bg, glyph);
+            }
+
+            // Move the coordinates
+            x += 1;
+            if x > map.width - 1 {
+                x = 0;
+                y += 1;
+            }
+        }
     }
 }

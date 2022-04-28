@@ -125,8 +125,8 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
     gs.ecs.insert(RandomNumberGenerator::new());
 
     let mut generator =
-        map_generation::rooms_corridors::RoomsCorridorsGenerator::new(width, height);
-    let (rooms, map) = generator.new_map_rooms_and_corridors();
+        map_generation::buildings_generator::BuildingsGenerator::new(width, height);
+    let (rooms, map) = generator.new_map_buildings();
 
     let room_center = rooms[0].center();
     let player_entity = spawner::player(&mut gs.ecs, room_center);
