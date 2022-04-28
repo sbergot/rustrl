@@ -3,11 +3,9 @@ use specs::{prelude::*, saveload::*};
 
 use crate::{
     components::*,
-    game_map::GameMap,
+    game_display::{GameDisplay, GameSignal},
     gamelog::GameLog,
-    gui::{game_ui::*, gui_handlers::*},
-    map::Map,
-    map_generation, player,
+    map_generation,
     resources::{PlayerEntity, PlayerPos, PointsOfInterest, RunState},
     scenes::{Scene, SceneSignal, SceneType},
     spawner,
@@ -19,6 +17,7 @@ pub struct State<'a, 'b> {
     gameplay_systems: Dispatcher<'a, 'b>,
     indexing_systems: Dispatcher<'a, 'b>,
     runstate: RunState,
+    display: GameDisplay,
 }
 
 impl<'a, 'b> State<'a, 'b> {
@@ -27,20 +26,6 @@ impl<'a, 'b> State<'a, 'b> {
         self.ecs.maintain();
         self.indexing_systems.dispatch(&self.ecs);
         self.ecs.maintain();
-    }
-
-    fn draw_renderables(&mut self, ctx: &mut BTerm) {
-        let positions = self.ecs.read_storage::<Position>();
-        let renderables = self.ecs.read_storage::<Renderable>();
-        let map = self.ecs.read_resource::<GameMap>();
-        let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
-        data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
-        for (pos, render) in data {
-            let idx = map.xy_idx(pos.pos);
-            if map.visible_tiles[idx] {
-                ctx.set(pos.pos.x, pos.pos.y, render.fg, render.bg, render.glyph)
-            }
-        }
     }
 
     fn is_player_dead(&mut self) -> bool {
@@ -60,12 +45,9 @@ impl<'a, 'b> Scene for State<'a, 'b> {
             return SceneSignal::Load(SceneType::GameOver);
         }
 
-        ctx.cls();
         particle_system::cull_dead_particles(&mut self.ecs, ctx);
 
-        GameMap::draw_map(&self.ecs, ctx);
-        self.draw_renderables(ctx);
-        draw_ui(&self.ecs, ctx);
+        self.display.draw(&self.ecs, ctx);
 
         match self.runstate {
             RunState::PreRun => {
@@ -74,7 +56,18 @@ impl<'a, 'b> Scene for State<'a, 'b> {
             }
             RunState::AwaitingInput => {
                 self.run_systems();
-                self.runstate = player::player_input(&mut self.ecs, ctx.key);
+                match self.display.read_input(&self.ecs, ctx) {
+                    GameSignal::None => {}
+                    GameSignal::Perform(action) => {
+                        let player_entity = self.ecs.read_resource::<PlayerEntity>().entity;
+                        action.run(player_entity, &mut self.ecs);
+                        self.runstate = RunState::PlayerTurn;
+                    }
+                    GameSignal::SaveQuit => {
+                        save_game(&mut self.ecs);
+                        return SceneSignal::Load(SceneType::MainMenu);
+                    }
+                }
             }
             RunState::PlayerTurn => {
                 self.run_systems();
@@ -84,16 +77,6 @@ impl<'a, 'b> Scene for State<'a, 'b> {
                 self.run_systems();
                 run_monster_ai(&mut self.ecs);
                 self.runstate = RunState::AwaitingInput;
-            }
-            RunState::ShowUi { screen } => {
-                let res = run_screen(&mut self.ecs, ctx, screen);
-                if let Some(newstate) = res {
-                    self.runstate = newstate;
-                }
-            }
-            RunState::SaveGame => {
-                save_game(&mut self.ecs);
-                return SceneSignal::Load(SceneType::MainMenu);
             }
         }
 
@@ -135,7 +118,8 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
         ecs: world,
         gameplay_systems: gameplay_dispatcher,
         indexing_systems: indexing_dispatcher,
-        runstate: RunState::PreRun
+        runstate: RunState::PreRun,
+        display: GameDisplay::new(),
     };
 
     gs.ecs.insert(RandomNumberGenerator::new());

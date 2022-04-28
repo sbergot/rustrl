@@ -9,7 +9,7 @@ use crate::{
     resources::{PlayerEntity, PlayerPos},
 };
 
-pub fn get_usage_options(ecs: &mut World, item: Entity) -> Vec<(String, ItemUsage)> {
+pub fn get_usage_options(ecs: &World, item: Entity) -> Vec<(String, ItemUsage)> {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let mut options = Vec::new();
 
@@ -35,7 +35,7 @@ pub fn get_usage_options(ecs: &mut World, item: Entity) -> Vec<(String, ItemUsag
     options
 }
 
-pub fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
+pub fn get_inventory_options(ecs: &World) -> Vec<(String, Entity)> {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let names = ecs.read_storage::<Name>();
     let storage = ecs.read_storage::<Inventory>();
@@ -63,7 +63,7 @@ pub fn get_inventory_options(ecs: &mut World) -> Vec<(String, Entity)> {
     new_options
 }
 
-pub fn get_equipped_options(ecs: &mut World) -> Vec<(String, Entity)> {
+pub fn get_equipped_options(ecs: &World) -> Vec<(String, Entity)> {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let names = ecs.read_storage::<Name>();
 
@@ -78,7 +78,7 @@ pub fn get_equipped_options(ecs: &mut World) -> Vec<(String, Entity)> {
     options
 }
 
-pub fn get_cells_in_range(ecs: &mut World, range: i32) -> Vec<Point> {
+pub fn get_cells_in_range(ecs: &World, range: i32) -> Vec<Point> {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let player_pos = ecs.read_resource::<PlayerPos>();
     let viewsheds = ecs.read_storage::<Viewshed>();

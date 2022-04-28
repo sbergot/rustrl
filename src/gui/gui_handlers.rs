@@ -4,10 +4,11 @@ use specs::*;
 use crate::{
     actions::*,
     components::*,
+    game_display::{UiSignal, try_move_player, GameSignal},
     gui::{components::*, game_ui::*},
     input::*,
     queries::*,
-    resources::{PlayerEntity, PlayerPos, PointsOfInterest, RunState},
+    resources::{PlayerPos, PointsOfInterest}, player::grab_item,
 };
 
 #[derive(PartialEq, Copy, Clone)]
@@ -33,6 +34,7 @@ pub enum UiScreen {
     Examine {
         selection: Point,
     },
+    Play,
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -65,41 +67,108 @@ pub fn read_input_selection<T: Copy>(
     }
 }
 
-pub fn run_screen(ecs: &mut World, ctx: &mut BTerm, screen: UiScreen) -> Option<RunState> {
+pub fn get_screen_handler(screen: UiScreen) -> Box<dyn UiHandlerMin> {
     match screen {
-        UiScreen::Inventory => (InventoryHandler {}).run_handler(ecs, ctx),
+        UiScreen::Play => Box::new(PlayHandler {}),
+        UiScreen::Inventory => Box::new(InventoryHandler {}),
         UiScreen::Targeting {
             range,
             item,
             selection,
-        } => (TargetingHandler {
+        } => Box::new(TargetingHandler {
             range,
             item,
             selection,
-        })
-        .run_handler(ecs, ctx),
-        UiScreen::RemoveItem => (EquippedItemHandler {}).run_handler(ecs, ctx),
-        UiScreen::Examine { selection } => (ExamineHandler { selection }).run_handler(ecs, ctx),
-        UiScreen::UseItem { item } => (UseItemHandler { item }).run_handler(ecs, ctx),
+        }),
+        UiScreen::RemoveItem => Box::new(EquippedItemHandler {}),
+        UiScreen::Examine { selection } => Box::new(ExamineHandler { selection }),
+        UiScreen::UseItem { item } => Box::new(UseItemHandler { item }),
     }
+}
+
+pub fn draw_screen(ecs: &World, ctx: &mut BTerm, screen: UiScreen) {
+    get_screen_handler(screen).show(ecs, ctx);
+}
+
+pub fn run_screen(ecs: &World, ctx: &mut BTerm, screen: UiScreen) -> UiSignal {
+    get_screen_handler(screen).run_handler(ecs, ctx)
 }
 
 trait UiHandler {
     type Output;
 
-    fn show(&self, ecs: &mut World, ctx: &mut BTerm);
+    fn show(&self, ecs: &World, ctx: &mut BTerm);
 
-    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output>;
+    fn read_input(&self, ecs: &World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output>;
 
-    fn handle(&self, ecs: &mut World, input: Self::Output) -> RunState;
+    fn handle(&self, ecs: &World, input: Self::Output) -> UiSignal;
 
-    fn run_handler(&self, ecs: &mut World, ctx: &mut BTerm) -> Option<RunState> {
+    fn run_handler(&self, ecs: &World, ctx: &mut BTerm) -> UiSignal {
         self.show(ecs, ctx);
         let menuresult = self.read_input(ecs, ctx);
         match menuresult {
-            ItemMenuResult::Cancel => Some(RunState::AwaitingInput),
-            ItemMenuResult::NoResponse => None,
-            ItemMenuResult::Selected { result } => Some(self.handle(ecs, result)),
+            ItemMenuResult::Cancel => UiSignal::UpdateScreen(UiScreen::Play),
+            ItemMenuResult::NoResponse => UiSignal::None,
+            ItemMenuResult::Selected { result } => self.handle(ecs, result),
+        }
+    }
+}
+
+pub trait UiHandlerMin {
+    fn show(&self, ecs: &World, ctx: &mut BTerm);
+    fn run_handler(&self, ecs: &World, ctx: &mut BTerm) -> UiSignal;
+}
+
+impl<T> UiHandlerMin for T where T: UiHandler,
+{
+    fn show(&self, ecs: &World, ctx: &mut BTerm) {
+        self.show(ecs, ctx);
+    }
+
+    fn run_handler(&self, ecs: &World, ctx: &mut BTerm) -> UiSignal {
+        self.run_handler(ecs, ctx)
+    }
+}
+
+
+#[derive(PartialEq, Copy, Clone)]
+struct PlayHandler {}
+
+impl UiHandler for PlayHandler {
+    type Output = Command;
+
+    fn show(&self, _ecs: &World, _ctx: &mut BTerm) {}
+
+    fn read_input(&self, _ecs: &World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
+        let cmd = map_all(ctx.key, &[map_direction, map_other_commands]);
+        match cmd {
+            Some(cmd) => ItemMenuResult::Selected { result: cmd },
+            None => ItemMenuResult::NoResponse,
+        }
+    }
+
+    fn handle(&self, ecs: &World, input: Command) -> UiSignal {
+        match input {
+            Command::Direction { direction } => try_move_player(direction, ecs),
+            Command::Wait => UiSignal::GameSignal(GameSignal::Perform(Box::new(WaitAction {}))),
+            Command::Grab => {
+                let action = grab_item(ecs);
+                if let Some(action) = action {
+                    UiSignal::GameSignal(GameSignal::Perform(action))
+                } else {
+                    UiSignal::None
+                }
+            }
+            Command::ShowInventory => return UiSignal::UpdateScreen(UiScreen::Inventory),
+            Command::ShowRemoveItem => return UiSignal::UpdateScreen(UiScreen::RemoveItem),
+            Command::ExamineMode => {
+                let player_pos = ecs.read_resource::<PlayerPos>();
+                return UiSignal::UpdateScreen(UiScreen::Examine {
+                    selection: player_pos.pos,
+                });
+            }
+            Command::SaveQuit => return UiSignal::GameSignal(GameSignal::SaveQuit),
+            _ => UiSignal::None,
         }
     }
 }
@@ -110,45 +179,39 @@ struct InventoryHandler {}
 impl UiHandler for InventoryHandler {
     type Output = Entity;
 
-    fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
+    fn show(&self, ecs: &World, ctx: &mut BTerm) {
         let options = get_inventory_options(ecs);
         show_selection(ctx, "Inventory", &options);
     }
 
-    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
+    fn read_input(&self, ecs: &World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
         let options = get_inventory_options(ecs);
         read_input_selection(ctx.key, &options)
     }
 
-    fn handle(&self, _ecs: &mut World, input: Entity) -> RunState {
-        RunState::ShowUi {
-            screen: UiScreen::UseItem { item: input },
-        }
+    fn handle(&self, _ecs: &World, input: Entity) -> UiSignal {
+        UiSignal::UpdateScreen(UiScreen::UseItem { item: input })
     }
 }
 
-fn try_use_item(ecs: &mut World, input: Entity) -> RunState {
+fn try_use_item(ecs: &World, input: Entity) -> UiSignal {
     {
         let is_ranged = ecs.read_storage::<Ranged>();
         let is_item_ranged = is_ranged.get(input);
         if let Some(is_item_ranged) = is_item_ranged {
             let player_pos = ecs.read_resource::<PlayerPos>();
-            return RunState::ShowUi {
-                screen: UiScreen::Targeting {
-                    range: is_item_ranged.range,
-                    item: input,
-                    selection: player_pos.pos,
-                },
-            };
+            return UiSignal::UpdateScreen(UiScreen::Targeting {
+                range: is_item_ranged.range,
+                item: input,
+                selection: player_pos.pos,
+            });
         }
     }
     let action = UseItemAction {
         item: input,
         target: None,
     };
-    let player_entity = ecs.read_resource::<PlayerEntity>().entity;
-    action.run(player_entity, ecs);
-    RunState::PlayerTurn
+    UiSignal::GameSignal(GameSignal::Perform(Box::new(action)))
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -166,7 +229,7 @@ enum LookCommand {
 impl UiHandler for TargetingHandler {
     type Output = LookCommand;
 
-    fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
+    fn show(&self, ecs: &World, ctx: &mut BTerm) {
         ctx.print_color(
             5,
             0,
@@ -190,7 +253,7 @@ impl UiHandler for TargetingHandler {
         ctx.set_bg(pos.x, pos.y, color);
     }
 
-    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
+    fn read_input(&self, ecs: &World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
         let input = map_all(ctx.key, &[map_direction, map_look_commands]);
         match input {
             None => ItemMenuResult::NoResponse,
@@ -217,24 +280,20 @@ impl UiHandler for TargetingHandler {
         }
     }
 
-    fn handle(&self, ecs: &mut World, input: LookCommand) -> RunState {
+    fn handle(&self, _ecs: &World, input: LookCommand) -> UiSignal {
         match input {
             LookCommand::Select(selection) => {
                 let action = UseItemAction {
                     item: self.item,
                     target: Some(selection),
                 };
-                let player_entity = ecs.read_resource::<PlayerEntity>().entity;
-                action.run(player_entity, ecs);
-                RunState::PlayerTurn
+                UiSignal::GameSignal(GameSignal::Perform(Box::new(action)))
             }
-            LookCommand::Inspect(point) => RunState::ShowUi {
-                screen: UiScreen::Targeting {
-                    range: self.range,
-                    item: self.item,
-                    selection: point,
-                },
-            },
+            LookCommand::Inspect(point) => UiSignal::UpdateScreen(UiScreen::Targeting {
+                range: self.range,
+                item: self.item,
+                selection: point,
+            }),
         }
     }
 }
@@ -245,20 +304,18 @@ struct EquippedItemHandler {}
 impl UiHandler for EquippedItemHandler {
     type Output = Entity;
 
-    fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
+    fn show(&self, ecs: &World, ctx: &mut BTerm) {
         let options = get_equipped_options(ecs);
         show_selection(ctx, "Remove Which Item?", &options)
     }
 
-    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
+    fn read_input(&self, ecs: &World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
         let options = get_equipped_options(ecs);
         read_input_selection(ctx.key, &options)
     }
 
-    fn handle(&self, _ecs: &mut World, input: Entity) -> RunState {
-        RunState::ShowUi {
-            screen: UiScreen::UseItem { item: input },
-        }
+    fn handle(&self, _ecs: &World, input: Entity) -> UiSignal {
+        UiSignal::UpdateScreen(UiScreen::UseItem { item: input })
     }
 }
 
@@ -270,7 +327,7 @@ struct ExamineHandler {
 impl UiHandler for ExamineHandler {
     type Output = Point;
 
-    fn show(&self, _ecs: &mut World, ctx: &mut BTerm) {
+    fn show(&self, _ecs: &World, ctx: &mut BTerm) {
         ctx.print_color(5, 0, RGB::named(YELLOW), RGB::named(BLACK), "Examine mode");
 
         let pos = self.selection;
@@ -278,7 +335,7 @@ impl UiHandler for ExamineHandler {
         draw_tooltips(_ecs, ctx, pos);
     }
 
-    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
+    fn read_input(&self, ecs: &World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
         let input = map_all(ctx.key, &[map_direction, map_look_commands]);
         match input {
             None => ItemMenuResult::NoResponse,
@@ -301,10 +358,8 @@ impl UiHandler for ExamineHandler {
         }
     }
 
-    fn handle(&self, _ecs: &mut World, input: Point) -> RunState {
-        RunState::ShowUi {
-            screen: UiScreen::Examine { selection: input },
-        }
+    fn handle(&self, _ecs: &World, input: Point) -> UiSignal {
+        UiSignal::UpdateScreen(UiScreen::Examine { selection: input })
     }
 }
 
@@ -316,35 +371,33 @@ struct UseItemHandler {
 impl UiHandler for UseItemHandler {
     type Output = ItemUsage;
 
-    fn show(&self, ecs: &mut World, ctx: &mut BTerm) {
+    fn show(&self, ecs: &World, ctx: &mut BTerm) {
         let options = get_usage_options(ecs, self.item);
         show_selection(ctx, "Pick action", &options);
     }
 
-    fn read_input(&self, ecs: &mut World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
+    fn read_input(&self, ecs: &World, ctx: &mut BTerm) -> ItemMenuResult<Self::Output> {
         let options = get_usage_options(ecs, self.item);
         read_input_selection(ctx.key, &options)
     }
 
-    fn handle(&self, ecs: &mut World, input: ItemUsage) -> RunState {
-        let player_entity = ecs.read_resource::<PlayerEntity>().entity;
+    fn handle(&self, ecs: &World, input: ItemUsage) -> UiSignal {
         match input {
             ItemUsage::Drop => {
                 let action = DropItemAction { target: self.item };
-                action.run(player_entity, ecs);
+                UiSignal::GameSignal(GameSignal::Perform(Box::new(action)))
             }
             ItemUsage::Equip => {
                 let action = EquipItemAction { target: self.item };
-                action.run(player_entity, ecs);
+                UiSignal::GameSignal(GameSignal::Perform(Box::new(action)))
             }
             ItemUsage::Unequip => {
                 let action = UnequipItemAction { target: self.item };
-                action.run(player_entity, ecs);
+                UiSignal::GameSignal(GameSignal::Perform(Box::new(action)))
             }
             ItemUsage::Use => {
                 return try_use_item(ecs, self.item);
             }
         }
-        RunState::PlayerTurn
     }
 }

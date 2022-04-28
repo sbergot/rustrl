@@ -18,7 +18,7 @@ type SystemData<'a> = (
 );
 
 pub fn run_monster_ai(world: &mut World) {
-    let mut actions: Vec<(Entity, Box<dyn Action>)> = Vec::new();
+    let mut actions: Vec<(Entity, AnyAction)> = Vec::new();
 
     {
         let (
@@ -63,7 +63,7 @@ fn get_monster_action(
     monster_pos: Point,
     player_entity: Entity,
     map: &GameMap,
-) -> AnyAction {
+) -> Option<AnyAction> {
     let mut can_act = true;
     let is_confused = confused.get_mut(entity);
     if let Some(i_am_confused) = is_confused {

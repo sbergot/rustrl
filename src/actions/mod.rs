@@ -12,6 +12,8 @@ mod unequip_item_action;
 pub use unequip_item_action::*;
 mod use_item_action;
 pub use use_item_action::*;
+mod wait_action;
+pub use wait_action::*;
 
 use specs::*;
 
@@ -21,7 +23,7 @@ pub trait Action {
     fn run(&self, actor: Entity, ecs: &mut World);
 }
 
-pub type AnyAction = Option<Box<dyn Action>>;
+pub type AnyAction = Box<dyn Action>;
 
 pub fn has_component<T: Component>(ecs: &World, entity: Entity) -> bool {
     ecs.read_storage::<T>().contains(entity)

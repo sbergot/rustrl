@@ -1,8 +1,6 @@
 use bracket_lib::prelude::Point;
 use specs::Entity;
 
-use crate::gui::gui_handlers::UiScreen;
-
 pub struct PlayerPos {
     pub pos: Point,
 }
@@ -17,8 +15,6 @@ pub enum RunState {
     PreRun,
     PlayerTurn,
     MonsterTurn,
-    ShowUi { screen: UiScreen },
-    SaveGame,
 }
 
 pub struct PointsOfInterest(Vec<Point>);

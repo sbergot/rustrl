@@ -3,6 +3,7 @@ mod components;
 mod constants;
 mod entity_containers;
 mod game_map;
+mod game_display;
 mod gamelog;
 mod gui;
 mod input;
