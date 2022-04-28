@@ -1,3 +1,9 @@
 pub mod components;
+pub mod equipped_item_handler;
+pub mod examine_handler;
 pub mod game_ui;
 pub mod gui_handlers;
+pub mod inventory_handler;
+pub mod play_handler;
+pub mod targeting_handler;
+pub mod use_item_handler;

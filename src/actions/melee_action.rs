@@ -5,7 +5,8 @@ use crate::{
     components::*,
     game_map::{Decal, GameMap},
     gamelog::GameLog,
-    systems::ParticleBuilder, map::Map,
+    map::Map,
+    systems::ParticleBuilder,
 };
 
 use super::{map_equipped_items_comp, Action};

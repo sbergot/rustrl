@@ -6,7 +6,7 @@ use crate::{
     game_display::{GameDisplay, GameSignal},
     gamelog::GameLog,
     map_generation,
-    resources::{PlayerEntity, PlayerPos, PointsOfInterest, RunState},
+    resources::*,
     scenes::{Scene, SceneSignal, SceneType},
     spawner,
     systems::*,

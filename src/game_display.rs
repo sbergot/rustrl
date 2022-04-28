@@ -9,9 +9,7 @@ use crate::{
         game_ui::draw_ui,
         gui_handlers::{draw_screen, run_screen, UiScreen},
     },
-    input::{get_direction_offset, Direction},
     map::Map,
-    player::get_player_action,
     resources::*,
 };
 
@@ -53,7 +51,10 @@ impl GameDisplay {
                 self.mode = screen;
                 GameSignal::None
             }
-            UiSignal::GameSignal(signal) => signal,
+            UiSignal::GameSignal(signal) => {
+                self.mode = UiScreen::Play;
+                signal
+            }
         }
     }
 }
@@ -153,27 +154,5 @@ pub fn draw_renderables(ecs: &World, ctx: &mut BTerm) {
         if map.visible_tiles[idx] {
             ctx.set(pos.pos.x, pos.pos.y, render.fg, render.bg, render.glyph)
         }
-    }
-}
-
-pub fn try_move_player(direction: Direction, ecs: &World) -> UiSignal {
-    let player_entity = ecs.read_resource::<PlayerEntity>().entity;
-    let action = {
-        let player_pos = {
-            let storage = ecs.read_storage::<Position>();
-            storage.get(player_entity).unwrap().pos
-        };
-        let combat_stats = ecs.read_storage::<CombatStats>();
-        let map = ecs.read_resource::<GameMap>();
-
-        let offset = get_direction_offset(direction);
-
-        get_player_action(&map, player_pos, offset, &combat_stats)
-    };
-
-    if let Some(action) = action {
-        UiSignal::GameSignal(GameSignal::Perform(action))
-    } else {
-        UiSignal::None
     }
 }
