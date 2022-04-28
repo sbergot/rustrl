@@ -132,4 +132,3 @@ pub fn draw_tooltips(ecs: &World, ctx: &mut BTerm, pos: Point) {
         );
     }
 }
-

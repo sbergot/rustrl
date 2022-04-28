@@ -9,8 +9,9 @@ use crate::{
     map::Map,
     map_generation, player,
     resources::{PlayerEntity, PlayerPos, PointsOfInterest, RunState},
+    scenes::{Scene, SceneSignal, SceneType},
     spawner,
-    systems::*, scenes::{SceneSignal, SceneType, Scene},
+    systems::*,
 };
 
 pub struct State<'a, 'b> {

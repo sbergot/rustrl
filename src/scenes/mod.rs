@@ -1,8 +1,10 @@
+mod game_over_scene;
+mod game_scene;
+mod main_menu_scene;
+
 use bracket_lib::prelude::GameState;
 
-use crate::{
-    game_over_scene::GameOverScene, game_scene::GameScene, main_menu_scene::MainMenuScene,
-};
+use self::{game_over_scene::GameOverScene, game_scene::GameScene, main_menu_scene::MainMenuScene};
 
 pub enum SceneType {
     MainMenu,
@@ -29,7 +31,9 @@ pub struct SceneHandler {
 
 impl SceneHandler {
     pub fn new() -> SceneHandler {
-        SceneHandler { current_scene: Box::new(MainMenuScene::new()) }
+        SceneHandler {
+            current_scene: Box::new(MainMenuScene::new()),
+        }
     }
 }
 

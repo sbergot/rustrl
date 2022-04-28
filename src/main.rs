@@ -11,13 +11,10 @@ mod map_generation;
 mod player;
 mod queries;
 mod resources;
+mod scenes;
 mod spawner;
 mod state;
 mod systems;
-mod scenes;
-mod game_over_scene;
-mod main_menu_scene;
-mod game_scene;
 
 use bracket_lib::prelude::{main_loop, BError, BTermBuilder};
 use constants::*;
