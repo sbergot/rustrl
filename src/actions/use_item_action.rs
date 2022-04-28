@@ -111,7 +111,8 @@ impl Action for UseItemAction {
                     let target_stats = combat_stats_storage.get_mut(*target);
                     if let Some(target_stats) = target_stats {
                         let target_position = position_storage.get(*target).unwrap().pos;
-                        map.decal_tiles.insert(target_position, Decal::blood());
+                        let idx = map.xy_idx(target_position);
+                        map.decal_tiles.insert(idx, Decal::blood());
                         target_stats.deal_damage(damage.damage);
                     }
                     if is_player {

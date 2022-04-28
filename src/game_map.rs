@@ -30,9 +30,7 @@ pub struct GameMap {
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
     pub blocked_tiles: Vec<bool>,
-    #[serde(skip_serializing)]
-    #[serde(skip_deserializing)]
-    pub decal_tiles: HashMap<Point, Decal>,
+    pub decal_tiles: HashMap<usize, Decal>,
 
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
@@ -196,7 +194,7 @@ impl GameMap {
 
                 let bg = if poi.contains(pos) {
                     RGB::named(BLUE)
-                } else if let Some(decal) = map.decal_tiles.get(&pos) {
+                } else if let Some(decal) = map.decal_tiles.get(&idx) {
                     decal.color
                 } else {
                     RGB::from_f32(0., 0., 0.)

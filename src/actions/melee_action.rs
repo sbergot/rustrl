@@ -5,7 +5,7 @@ use crate::{
     components::*,
     game_map::{Decal, GameMap},
     gamelog::GameLog,
-    systems::ParticleBuilder,
+    systems::ParticleBuilder, map::Map,
 };
 
 use super::{map_equipped_items_comp, Action};
@@ -62,7 +62,8 @@ impl Action for MeleeAction {
 
                 if let Some(pos) = target_pos {
                     let mut map = ecs.write_resource::<GameMap>();
-                    map.decal_tiles.insert(pos.pos, Decal::blood());
+                    let idx = map.xy_idx(pos.pos);
+                    map.decal_tiles.insert(idx, Decal::blood());
 
                     particle_builder.request(
                         pos.pos,
