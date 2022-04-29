@@ -6,6 +6,7 @@ use bracket_lib::prelude::GameState;
 
 use self::{game_over_scene::GameOverScene, game_scene::GameScene, main_menu_scene::MainMenuScene};
 
+#[derive(Clone, Copy, PartialEq)]
 pub enum SceneType {
     MainMenu,
     NewGame,

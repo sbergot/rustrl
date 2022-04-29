@@ -1,107 +1,76 @@
 use bracket_lib::prelude::*;
 
 use crate::{
+    input::{map_all, map_direction, map_look_commands, Command, Direction},
     scenes::{Scene, SceneSignal, SceneType},
     systems::does_save_exist,
 };
 
+#[derive(Clone)]
+struct MainMenuEntry {
+    scene: SceneType,
+    label: &'static str,
+}
+
 pub struct MainMenuScene {
-    selection: MainMenuSelection,
-    save_exists: bool,
+    selection: i32,
+    entries: Vec<MainMenuEntry>,
 }
 
 impl Scene for MainMenuScene {
     fn tick(&mut self, ctx: &mut BTerm) -> SceneSignal {
         self.draw(ctx);
-        match self.read_input(ctx) {
-            MainMenuResult::NoSelection { selected } => {
-                self.selection = selected;
-                SceneSignal::None
-            }
-            MainMenuResult::Selected { selected } => {
-                let new_scene = match selected {
-                    MainMenuSelection::NewGame => SceneType::NewGame,
-                    MainMenuSelection::LoadGame => SceneType::LoadGame,
-                    MainMenuSelection::Quit => SceneType::Quit,
-                };
-                SceneSignal::Load(new_scene)
-            }
+        if let Some(entry) = self.read_input(ctx) {
+            SceneSignal::Load(entry)
+        } else {
+            SceneSignal::None
         }
     }
-}
-
-#[derive(PartialEq, Copy, Clone)]
-pub enum MainMenuSelection {
-    NewGame,
-    LoadGame,
-    Quit,
-}
-
-#[derive(PartialEq, Copy, Clone)]
-enum MainMenuResult {
-    NoSelection { selected: MainMenuSelection },
-    Selected { selected: MainMenuSelection },
 }
 
 impl MainMenuScene {
     pub fn new() -> MainMenuScene {
+        let mut entries: Vec<MainMenuEntry> = Vec::new();
+        entries.push(MainMenuEntry {
+            scene: SceneType::NewGame,
+            label: "Begin New Game",
+        });
+        if does_save_exist() {
+            entries.push(MainMenuEntry {
+                scene: SceneType::LoadGame,
+                label: "Load Game",
+            });
+        }
+        entries.push(MainMenuEntry {
+            scene: SceneType::Quit,
+            label: "Quit",
+        });
         MainMenuScene {
-            selection: MainMenuSelection::NewGame,
-            save_exists: does_save_exist(),
+            selection: 0,
+            entries,
         }
     }
 
-    fn read_input(&self, ctx: &BTerm) -> MainMenuResult {
-        match ctx.key {
-            None => {
-                return MainMenuResult::NoSelection {
-                    selected: self.selection,
-                }
-            }
+    fn read_input(&mut self, ctx: &BTerm) -> Option<SceneType> {
+        let input = map_all(ctx.key, &[map_direction, map_look_commands]);
+
+        match input {
+            None => None,
             Some(key) => match key {
-                VirtualKeyCode::Escape => {
-                    return MainMenuResult::NoSelection {
-                        selected: MainMenuSelection::Quit,
-                    }
+                Command::Direction {
+                    direction: Direction::Up,
+                } => {
+                    self.selection = (self.selection - 1).rem_euclid(self.entries.len() as i32);
+                    None
                 }
-                VirtualKeyCode::Up => {
-                    let mut newselection;
-                    match self.selection {
-                        MainMenuSelection::NewGame => newselection = MainMenuSelection::Quit,
-                        MainMenuSelection::LoadGame => newselection = MainMenuSelection::NewGame,
-                        MainMenuSelection::Quit => newselection = MainMenuSelection::LoadGame,
-                    }
-                    if newselection == MainMenuSelection::LoadGame && !self.save_exists {
-                        newselection = MainMenuSelection::NewGame;
-                    }
-                    return MainMenuResult::NoSelection {
-                        selected: newselection,
-                    };
+                Command::Direction {
+                    direction: Direction::Down,
+                } => {
+                    self.selection = (self.selection + 1).rem_euclid(self.entries.len() as i32);
+                    None
                 }
-                VirtualKeyCode::Down => {
-                    let mut newselection;
-                    match self.selection {
-                        MainMenuSelection::NewGame => newselection = MainMenuSelection::LoadGame,
-                        MainMenuSelection::LoadGame => newselection = MainMenuSelection::Quit,
-                        MainMenuSelection::Quit => newselection = MainMenuSelection::NewGame,
-                    }
-                    if newselection == MainMenuSelection::LoadGame && !self.save_exists {
-                        newselection = MainMenuSelection::Quit;
-                    }
-                    return MainMenuResult::NoSelection {
-                        selected: newselection,
-                    };
-                }
-                VirtualKeyCode::Return => {
-                    return MainMenuResult::Selected {
-                        selected: self.selection,
-                    }
-                }
-                _ => {
-                    return MainMenuResult::NoSelection {
-                        selected: self.selection,
-                    }
-                }
+                Command::Validate => Some(self.entries[self.selection as usize].scene),
+                _ => None,
             },
         }
     }
@@ -115,41 +84,15 @@ impl MainMenuScene {
             "Rust Roguelike Tutorial",
         );
 
-        {
-            if self.selection == MainMenuSelection::NewGame {
-                ctx.print_color_centered(
-                    24,
-                    RGB::named(MAGENTA),
-                    RGB::named(BLACK),
-                    "Begin New Game",
-                );
-            } else {
-                ctx.print_color_centered(
-                    24,
-                    RGB::named(WHITE),
-                    RGB::named(BLACK),
-                    "Begin New Game",
-                );
-            }
+        ctx.print_color_centered(23, RGB::named(WHITE), RGB::named(BLACK), self.selection);
 
-            if self.save_exists {
-                if self.selection == MainMenuSelection::LoadGame {
-                    ctx.print_color_centered(
-                        25,
-                        RGB::named(MAGENTA),
-                        RGB::named(BLACK),
-                        "Load Game",
-                    );
-                } else {
-                    ctx.print_color_centered(25, RGB::named(WHITE), RGB::named(BLACK), "Load Game");
-                }
-            }
-
-            if self.selection == MainMenuSelection::Quit {
-                ctx.print_color_centered(26, RGB::named(MAGENTA), RGB::named(BLACK), "Quit");
+        for (i, entry) in self.entries.iter().enumerate() {
+            let color = if i == self.selection as usize {
+                RGB::named(MAGENTA)
             } else {
-                ctx.print_color_centered(26, RGB::named(WHITE), RGB::named(BLACK), "Quit");
-            }
+                RGB::named(WHITE)
+            };
+            ctx.print_color_centered(24 + i, color, RGB::named(BLACK), entry.label);
         }
     }
 }
