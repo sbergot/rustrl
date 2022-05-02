@@ -6,12 +6,12 @@ use specs::{Entity, World, WorldExt};
 use crate::{
     components::{Inventory, Name},
     game_display::UiSignal,
-    resources::PlayerEntity,
+    resources::PlayerEntity, input::{ItemMenuResult, read_input_selection},
 };
 
 use super::{
     components::show_selection,
-    gui_handlers::{read_input_selection, ItemMenuResult, UiHandler, UiScreen},
+    gui_handlers::{UiHandler, UiScreen},
 };
 
 #[derive(PartialEq, Copy, Clone)]

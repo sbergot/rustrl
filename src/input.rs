@@ -1,4 +1,4 @@
-use bracket_lib::prelude::{Point, VirtualKeyCode};
+use bracket_lib::prelude::{Point, VirtualKeyCode, letter_to_option};
 
 #[derive(Clone, Copy)]
 pub enum Command {
@@ -112,5 +112,35 @@ pub fn get_direction_offset(direction: Direction) -> Point {
         Direction::UpRight => Point { x: 1, y: -1 },
         Direction::DownLeft => Point { x: -1, y: 1 },
         Direction::DownRight => Point { x: 1, y: 1 },
+    }
+}
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum ItemMenuResult<T> {
+    Cancel,
+    NoResponse,
+    Selected { result: T },
+}
+
+pub fn read_input_selection<T: Copy>(
+    key: Option<VirtualKeyCode>,
+    options: &Vec<(String, T)>,
+) -> ItemMenuResult<T> {
+    let count = options.len();
+
+    match key {
+        None => ItemMenuResult::NoResponse,
+        Some(key) => match key {
+            VirtualKeyCode::Escape => ItemMenuResult::Cancel,
+            _ => {
+                let selection = letter_to_option(key);
+                if selection > -1 && selection < count as i32 {
+                    return ItemMenuResult::Selected {
+                        result: options[selection as usize].1,
+                    };
+                }
+                ItemMenuResult::NoResponse
+            }
+        },
     }
 }

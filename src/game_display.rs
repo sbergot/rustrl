@@ -38,7 +38,9 @@ impl GameDisplay {
 
     pub fn draw(&self, ecs: &World, ctx: &mut BTerm) {
         ctx.cls();
-        crate::game_display::draw_map(ecs, ctx);
+        let map = ecs.read_resource::<GameMap>();
+        let poi = ecs.read_resource::<PointsOfInterest>();
+        draw_map(&map, &poi, ctx);
         draw_renderables(ecs, ctx);
         draw_ui(ecs, ctx);
         draw_screen(ecs, ctx, self.mode)
@@ -59,9 +61,7 @@ impl GameDisplay {
     }
 }
 
-pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
-    let map = ecs.read_resource::<GameMap>();
-    let poi = ecs.read_resource::<PointsOfInterest>();
+pub fn draw_map(map: &GameMap, poi: &PointsOfInterest, ctx: &mut BTerm) {
 
     let mut y = 0;
     let mut x = 0;

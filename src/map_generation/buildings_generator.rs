@@ -5,6 +5,8 @@ use std::{
     collections::HashMap,
 };
 
+use super::MapGenerator;
+
 pub struct BuildingsGenerator {
     pub tiles: Vec<TileType>,
     pub width: i32,
@@ -18,18 +20,8 @@ impl Map for BuildingsGenerator {
     }
 }
 
-impl BuildingsGenerator {
-    pub fn new(width: i32, height: i32) -> BuildingsGenerator {
-        let max_idx = (width * height) as usize;
-        BuildingsGenerator {
-            tiles: vec![TileType::Floor; max_idx],
-            width,
-            height,
-            max_idx,
-        }
-    }
-
-    pub fn new_map_buildings(&mut self) -> (Vec<Rect>, GameMap) {
+impl MapGenerator for BuildingsGenerator {
+    fn generate(&mut self) -> (Vec<Rect>, GameMap) {
         let mut rooms: Vec<Rect> = Vec::new();
         const MAX_ROOMS: i32 = 5;
         const MIN_SIZE: i32 = 12;
@@ -68,6 +60,18 @@ impl BuildingsGenerator {
         };
 
         (rooms, map)
+    }
+}
+
+impl BuildingsGenerator {
+    pub fn new(width: i32, height: i32) -> BuildingsGenerator {
+        let max_idx = (width * height) as usize;
+        BuildingsGenerator {
+            tiles: vec![TileType::Floor; max_idx],
+            width,
+            height,
+            max_idx,
+        }
     }
 
     fn place_building(&mut self, building: &Rect) {

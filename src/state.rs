@@ -5,7 +5,7 @@ use crate::{
     components::*,
     game_display::{GameDisplay, GameSignal},
     gamelog::GameLog,
-    map_generation,
+    map_generation::{self, MapGenerator},
     resources::*,
     scenes::{Scene, SceneSignal, SceneType},
     spawner,
@@ -126,7 +126,7 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
 
     let mut generator =
         map_generation::buildings_generator::BuildingsGenerator::new(width, height);
-    let (rooms, map) = generator.new_map_buildings();
+    let (rooms, map) = generator.generate();
 
     let room_center = rooms[0].center();
     let player_entity = spawner::player(&mut gs.ecs, room_center);

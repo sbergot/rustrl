@@ -6,10 +6,10 @@ use crate::{
     components::*,
     game_display::{GameSignal, UiSignal},
     gui::components::*,
-    resources::{PlayerEntity, PlayerPos},
+    resources::{PlayerEntity, PlayerPos}, input::{ItemMenuResult, read_input_selection},
 };
 
-use super::gui_handlers::{read_input_selection, ItemMenuResult, ItemUsage, UiHandler, UiScreen};
+use super::gui_handlers::{ItemUsage, UiHandler, UiScreen};
 
 #[derive(PartialEq, Copy, Clone)]
 pub struct UseItemHandler {

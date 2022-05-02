@@ -23,18 +23,16 @@ pub fn show_selection<T>(ctx: &mut BTerm, title: &str, options: &Vec<(String, T)
 
     let mut j = 0;
     for (name, _entity) in options {
-        ctx.set(17, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437('('));
-        ctx.set(
-            18,
-            y,
-            RGB::named(YELLOW),
-            RGB::named(BLACK),
-            97 + j as FontCharType,
-        );
-        ctx.set(19, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437(')'));
-
-        ctx.print(21, y, name);
+        ctx.print(18, y, format_option(j, name));
         y += 1;
         j += 1;
     }
+}
+
+pub fn option_to_letter(i: usize) -> char {
+    ("abcdefghijklmnopqrstuvwxyz").chars().nth(i).unwrap()
+}
+
+pub fn format_option(idx: usize, label: &str) -> String {
+    format!("({}) {}", option_to_letter(idx), label)
 }

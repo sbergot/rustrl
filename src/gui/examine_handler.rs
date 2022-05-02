@@ -3,13 +3,13 @@ use specs::{World, WorldExt};
 
 use crate::{
     game_display::UiSignal,
-    input::{get_direction_offset, map_all, map_direction, map_look_commands, Command},
+    input::*,
     resources::PointsOfInterest,
 };
 
 use super::{
     game_ui::draw_tooltips,
-    gui_handlers::{ItemMenuResult, UiHandler, UiScreen},
+    gui_handlers::{UiHandler, UiScreen},
 };
 
 #[derive(PartialEq, Copy, Clone)]

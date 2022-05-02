@@ -1,7 +1,7 @@
 use bracket_lib::prelude::*;
 use specs::*;
 
-use crate::game_display::UiSignal;
+use crate::{game_display::UiSignal, input::ItemMenuResult};
 
 use super::{
     equipped_item_handler::EquippedItemHandler, examine_handler::ExamineHandler,
@@ -33,36 +33,6 @@ pub enum UiScreen {
         selection: Point,
     },
     Play,
-}
-
-#[derive(PartialEq, Copy, Clone)]
-pub enum ItemMenuResult<T> {
-    Cancel,
-    NoResponse,
-    Selected { result: T },
-}
-
-pub fn read_input_selection<T: Copy>(
-    key: Option<VirtualKeyCode>,
-    options: &Vec<(String, T)>,
-) -> ItemMenuResult<T> {
-    let count = options.len();
-
-    match key {
-        None => ItemMenuResult::NoResponse,
-        Some(key) => match key {
-            VirtualKeyCode::Escape => ItemMenuResult::Cancel,
-            _ => {
-                let selection = letter_to_option(key);
-                if selection > -1 && selection < count as i32 {
-                    return ItemMenuResult::Selected {
-                        result: options[selection as usize].1,
-                    };
-                }
-                ItemMenuResult::NoResponse
-            }
-        },
-    }
 }
 
 fn get_screen_handler(screen: UiScreen) -> Box<dyn UiHandlerMin> {

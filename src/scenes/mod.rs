@@ -1,10 +1,15 @@
 mod game_over_scene;
 mod game_scene;
 mod main_menu_scene;
+mod map_gen_selection;
+mod map_gen_test;
 
 use bracket_lib::prelude::GameState;
 
-use self::{game_over_scene::GameOverScene, game_scene::GameScene, main_menu_scene::MainMenuScene};
+use self::{
+    game_over_scene::GameOverScene, game_scene::GameScene, main_menu_scene::MainMenuScene,
+    map_gen_selection::{MapGenType, MapGenSelectionScene}, map_gen_test::MapGenTestScene,
+};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum SceneType {
@@ -13,6 +18,8 @@ pub enum SceneType {
     LoadGame,
     GameOver,
     Quit,
+    MapGenSelection,
+    MapGenTest(MapGenType),
 }
 
 pub enum SceneSignal {
@@ -58,5 +65,7 @@ fn load_scene(scene: SceneType) -> AnyScene {
         SceneType::Quit => {
             ::std::process::exit(0);
         }
+        SceneType::MapGenSelection => Box::new(MapGenSelectionScene::new()),
+        SceneType::MapGenTest(gen_type) => Box::new(MapGenTestScene::new(gen_type)),
     }
 }

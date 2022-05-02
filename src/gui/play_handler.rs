@@ -14,7 +14,7 @@ use crate::{
     resources::{PlayerEntity, PlayerPos},
 };
 
-use super::gui_handlers::{ItemMenuResult, UiHandler, UiScreen};
+use super::gui_handlers::{UiHandler, UiScreen};
 
 #[derive(PartialEq, Copy, Clone)]
 pub struct PlayHandler {}

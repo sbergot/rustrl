@@ -1,7 +1,8 @@
 use bracket_lib::prelude::*;
 
 use crate::{
-    input::{map_all, map_direction, map_look_commands, Command, Direction},
+    gui::components::format_option,
+    input::{read_input_selection, ItemMenuResult},
     scenes::{Scene, SceneSignal, SceneType},
     systems::does_save_exist,
 };
@@ -13,7 +14,6 @@ struct MainMenuEntry {
 }
 
 pub struct MainMenuScene {
-    selection: i32,
     entries: Vec<MainMenuEntry>,
 }
 
@@ -42,36 +42,27 @@ impl MainMenuScene {
             });
         }
         entries.push(MainMenuEntry {
+            scene: SceneType::MapGenSelection,
+            label: "Test map gen",
+        });
+        entries.push(MainMenuEntry {
             scene: SceneType::Quit,
             label: "Quit",
         });
         MainMenuScene {
-            selection: 0,
             entries,
         }
     }
 
     fn read_input(&mut self, ctx: &BTerm) -> Option<SceneType> {
-        let input = map_all(ctx.key, &[map_direction, map_look_commands]);
-
-        match input {
-            None => None,
-            Some(key) => match key {
-                Command::Direction {
-                    direction: Direction::Up,
-                } => {
-                    self.selection = (self.selection - 1).rem_euclid(self.entries.len() as i32);
-                    None
-                }
-                Command::Direction {
-                    direction: Direction::Down,
-                } => {
-                    self.selection = (self.selection + 1).rem_euclid(self.entries.len() as i32);
-                    None
-                }
-                Command::Validate => Some(self.entries[self.selection as usize].scene),
-                _ => None,
-            },
+        let options = self
+            .entries
+            .iter()
+            .map(|entry| (entry.label.to_string(), entry.scene))
+            .collect();
+        match read_input_selection(ctx.key, &options) {
+            ItemMenuResult::Selected { result } => Some(result),
+            _ => None,
         }
     }
 
@@ -84,15 +75,13 @@ impl MainMenuScene {
             "Rust Roguelike Tutorial",
         );
 
-        ctx.print_color_centered(23, RGB::named(WHITE), RGB::named(BLACK), self.selection);
-
         for (i, entry) in self.entries.iter().enumerate() {
-            let color = if i == self.selection as usize {
-                RGB::named(MAGENTA)
-            } else {
-                RGB::named(WHITE)
-            };
-            ctx.print_color_centered(24 + i, color, RGB::named(BLACK), entry.label);
+            ctx.print_color_centered(
+                24 + i,
+                RGB::named(WHITE),
+                RGB::named(BLACK),
+                format_option(i, entry.label),
+            );
         }
     }
 }

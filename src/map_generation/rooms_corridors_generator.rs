@@ -5,6 +5,8 @@ use std::{
     collections::HashMap,
 };
 
+use super::MapGenerator;
+
 pub struct RoomsCorridorsGenerator {
     pub tiles: Vec<TileType>,
     pub width: i32,
@@ -18,18 +20,8 @@ impl Map for RoomsCorridorsGenerator {
     }
 }
 
-impl RoomsCorridorsGenerator {
-    pub fn new(width: i32, height: i32) -> RoomsCorridorsGenerator {
-        let max_idx = (width * height) as usize;
-        RoomsCorridorsGenerator {
-            tiles: vec![TileType::Wall; max_idx],
-            width,
-            height,
-            max_idx,
-        }
-    }
-
-    pub fn new_map_rooms_and_corridors(&mut self) -> (Vec<Rect>, GameMap) {
+impl MapGenerator for RoomsCorridorsGenerator {
+    fn generate(&mut self) -> (Vec<Rect>, GameMap) {
         let mut rooms: Vec<Rect> = Vec::new();
         const MAX_ROOMS: i32 = 40;
         const MIN_SIZE: i32 = 6;
@@ -83,6 +75,18 @@ impl RoomsCorridorsGenerator {
         };
 
         (rooms, map)
+    }
+}
+
+impl RoomsCorridorsGenerator {
+    pub fn new(width: i32, height: i32) -> RoomsCorridorsGenerator {
+        let max_idx = (width * height) as usize;
+        RoomsCorridorsGenerator {
+            tiles: vec![TileType::Wall; max_idx],
+            width,
+            height,
+            max_idx,
+        }
     }
 
     fn apply_room_to_map(&mut self, room: &Rect) {

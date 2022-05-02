@@ -5,11 +5,11 @@ use crate::{
     actions::UseItemAction,
     components::Viewshed,
     game_display::{GameSignal, UiSignal},
-    input::{get_direction_offset, map_all, map_direction, map_look_commands, Command},
+    input::{get_direction_offset, map_all, map_direction, map_look_commands, Command, ItemMenuResult},
     resources::{PlayerEntity, PlayerPos, PointsOfInterest},
 };
 
-use super::gui_handlers::{ItemMenuResult, UiHandler, UiScreen};
+use super::gui_handlers::{UiHandler, UiScreen};
 
 #[derive(PartialEq, Copy, Clone)]
 pub struct TargetingHandler {
