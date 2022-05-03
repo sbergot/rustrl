@@ -10,6 +10,7 @@ pub enum TileType {
     Wall,
     Floor,
     Door,
+    Window,
 }
 
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]

@@ -83,6 +83,10 @@ pub fn draw_map(map: &GameMap, poi: &PointsOfInterest, ctx: &mut BTerm) {
                     glyph = to_cp437('+');
                     fg = RGB::from_f32(0., 1.0, 0.);
                 }
+                TileType::Window => {
+                    glyph = to_cp437('∩');
+                    fg = RGB::from_f32(0., 1.0, 0.);
+                }
             }
             if !map.visible_tiles[idx] {
                 fg = fg.to_greyscale()

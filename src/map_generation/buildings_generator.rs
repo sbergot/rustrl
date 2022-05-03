@@ -70,22 +70,22 @@ impl BuildingsGenerator {
     }
 
     fn generate_buildings(&mut self) -> Vec<Rect> {
-        let mut rooms: Vec<Rect> = Vec::new();
+        let mut buildings: Vec<Rect> = Vec::new();
         const MAX_ROOMS: i32 = 20;
         for _ in 0..MAX_ROOMS {
-            let new_room = self.roll_room();
+            let new_building = self.roll_room();
             let mut ok = true;
-            for other_room in rooms.iter() {
-                if new_room.intersect(other_room) {
+            for other_building in buildings.iter() {
+                if new_building.intersect(&expand_rect(*other_building, 3)) {
                     ok = false
                 }
             }
             if ok {
-                self.place_building(&new_room);
-                rooms.push(new_room);
+                self.place_building(&new_building);
+                buildings.push(new_building);
             }
         }
-        rooms
+        buildings
     }
 
     fn place_building(&mut self, building: &Rect) {
@@ -120,8 +120,8 @@ impl BuildingsGenerator {
 
         let w = self.rng.range(MIN_SIZE, MAX_SIZE);
         let h = self.rng.range(MIN_SIZE, MAX_SIZE);
-        let x = self.rng.roll_dice(1, self.width - w - 1) - 1;
-        let y = self.rng.roll_dice(1, self.height - h - 1) - 1;
+        let x = self.rng.range(1, self.width - w - 1);
+        let y = self.rng.range(1, self.height - h - 1);
         let new_room = Rect::with_size(x, y, w, h);
         new_room
     }
@@ -147,10 +147,49 @@ impl BuildingsGenerator {
 
     fn connect_rooms(&mut self, rooms: &Vec<Rect>, building: Rect) {
         let neighbor_graph = scan_for_neighbors(rooms, building);
+
+        // randomly walk the neighbor graph to ensure connectivity
+        self.ensure_random_connectivity(&neighbor_graph);
+
+        self.add_random_doors(&neighbor_graph);
+
+        let ext_neighbors = neighbor_graph.get(&EXT_IDX).unwrap();
+        for _i in 0..5 {
+            let connection = ext_neighbors.get(self.rng.range(0, ext_neighbors.len())).unwrap();
+            let wall = connection
+                .shared_wall
+                .get(self.rng.range(0, connection.shared_wall.len()))
+                .unwrap();
+            if self.tiles[self.xy_idx(*wall)] == TileType::Wall {
+                self.place_point(*wall, TileType::Window);
+            }
+        }
+    }
+
+    fn add_random_doors(&mut self, neighbor_graph: &HashMap<i32, Vec<NeighBor>>) {
+        let rooms_vec: Vec<i32> = neighbor_graph.keys().map(|i| *i).collect();
+        for _i in 0..8 {
+            let room_idx = rooms_vec.get(self.rng.range(0, rooms_vec.len())).unwrap();
+            let neighbors = neighbor_graph.get(&room_idx).unwrap();
+            let connection = neighbors.get(self.rng.range(0, neighbors.len())).unwrap();
+            if connection
+                .shared_wall
+                .iter()
+                .all(|point| self.tiles[self.xy_idx(*point)] == TileType::Wall)
+            {
+                let wall = connection
+                    .shared_wall
+                    .get(self.rng.range(0, connection.shared_wall.len()))
+                    .unwrap();
+                self.place_point(*wall, TileType::Door);
+            }
+        }
+    }
+
+    fn ensure_random_connectivity(&mut self, neighbor_graph: &HashMap<i32, Vec<NeighBor>>) {
         let mut connected = HashSet::<i32>::new();
         let mut to_connect = HashSet::<i32>::new();
         connected.insert(EXT_IDX);
-
         let ext_neighbors: HashSet<i32> = neighbor_graph
             .get(&EXT_IDX)
             .unwrap()
@@ -158,7 +197,6 @@ impl BuildingsGenerator {
             .map(|n| n.idx)
             .collect();
         to_connect = to_connect.union(&ext_neighbors).map(|i| *i).collect();
-
         while !to_connect.is_empty() {
             let mut to_connect_vec: Vec<i32> = to_connect.iter().map(|i| *i).collect();
             let to_connect_idx = to_connect_vec.remove(self.rng.range(0, to_connect_vec.len()));
@@ -186,7 +224,10 @@ impl BuildingsGenerator {
                 .get(self.rng.range(0, connected_neightbors.len()))
                 .unwrap();
 
-            let connection_wall = connection.shared_wall.get(self.rng.range(0, connection.shared_wall.len())).unwrap();
+            let connection_wall = connection
+                .shared_wall
+                .get(self.rng.range(0, connection.shared_wall.len()))
+                .unwrap();
             self.place_point(*connection_wall, TileType::Door);
 
             to_connect.remove(&to_connect_idx);
@@ -277,6 +318,15 @@ fn vertical_line(y1: i32, y2: i32, x: i32) -> Vec<Point> {
         result.push(Point { x, y });
     }
     result
+}
+
+fn expand_rect(rect: Rect, size: i32) -> Rect {
+    Rect {
+        x1: rect.x1 - size,
+        x2: rect.x2 + size,
+        y1: rect.y1 - size,
+        y2: rect.y2 + size,
+    }
 }
 
 fn scan_for_neighbors(rooms: &Vec<Rect>, building: Rect) -> HashMap<i32, Vec<NeighBor>> {
