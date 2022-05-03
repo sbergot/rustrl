@@ -7,6 +7,13 @@ use std::{
 
 use super::MapGenerator;
 
+const EXT_IDX: i32 = -1;
+
+struct NeighBor {
+    idx: i32,
+    shared_wall: Vec<Point>,
+}
+
 pub struct BuildingsGenerator {
     pub tiles: Vec<TileType>,
     pub width: i32,
@@ -23,25 +30,13 @@ impl Map for BuildingsGenerator {
 
 impl MapGenerator for BuildingsGenerator {
     fn generate(&mut self) -> GameMap {
+        let buildings = self.generate_buildings();
+
         let mut rooms: Vec<Rect> = Vec::new();
-        const MAX_ROOMS: i32 = 20;
 
-        for _ in 0..MAX_ROOMS {
-            let new_room = self.roll_room();
-            let mut ok = true;
-            for other_room in rooms.iter() {
-                if new_room.intersect(other_room) {
-                    ok = false
-                }
-            }
-            if ok {
-                self.place_building(&new_room);
-                rooms.push(new_room);
-            }
-        }
-
-        for room in rooms.iter() {
-            self.generate_interior(*room);
+        for building in buildings.iter() {
+            let mut building_rooms = self.generate_interior(*building);
+            rooms.append(&mut building_rooms);
         }
 
         let map = GameMap {
@@ -73,6 +68,25 @@ impl BuildingsGenerator {
         }
     }
 
+    fn generate_buildings(&mut self) -> Vec<Rect> {
+        let mut rooms: Vec<Rect> = Vec::new();
+        const MAX_ROOMS: i32 = 20;
+        for _ in 0..MAX_ROOMS {
+            let new_room = self.roll_room();
+            let mut ok = true;
+            for other_room in rooms.iter() {
+                if new_room.intersect(other_room) {
+                    ok = false
+                }
+            }
+            if ok {
+                self.place_building(&new_room);
+                rooms.push(new_room);
+            }
+        }
+        rooms
+    }
+
     fn place_building(&mut self, building: &Rect) {
         self.place_horizontal_line(building.x1, building.x2, building.y1, TileType::Wall);
         self.place_horizontal_line(building.x1, building.x2, building.y2, TileType::Wall);
@@ -81,20 +95,21 @@ impl BuildingsGenerator {
     }
 
     fn place_horizontal_line(&mut self, x1: i32, x2: i32, y: i32, tile: TileType) {
-        for x in min(x1, x2)..=max(x1, x2) {
-            let idx = self.xy_idx(Point { x, y });
-            if idx > 0 && idx < self.max_idx {
-                self.tiles[idx as usize] = tile;
-            }
+        for point in horizontal_line(x1, x2, y) {
+            self.place_point(point, tile)
         }
     }
 
     fn place_vertical_line(&mut self, y1: i32, y2: i32, x: i32, tile: TileType) {
-        for y in min(y1, y2)..=max(y1, y2) {
-            let idx = self.xy_idx(Point { x, y });
-            if idx > 0 && idx < self.max_idx {
-                self.tiles[idx as usize] = tile;
-            }
+        for point in vertical_line(y1, y2, x) {
+            self.place_point(point, tile)
+        }
+    }
+
+    fn place_point(&mut self, point: Point, tile: TileType) {
+        let idx = self.xy_idx(point);
+        if idx > 0 && idx < self.max_idx {
+            self.tiles[idx as usize] = tile;
         }
     }
 
@@ -110,7 +125,7 @@ impl BuildingsGenerator {
         new_room
     }
 
-    fn generate_interior(&mut self, building: Rect) {
+    fn generate_interior(&mut self, building: Rect) -> Vec<Rect> {
         let (room1, room2) = self.split_room(building);
         let mut rooms = vec![room1, room2];
         for _i in 0..3 {
@@ -123,6 +138,17 @@ impl BuildingsGenerator {
                 rooms.push(room2);
             }
         }
+
+        self.connect_rooms(&rooms, building);
+
+        rooms
+    }
+
+    fn connect_rooms(&mut self, rooms: &Vec<Rect>, building: Rect) {
+        let neighbors = scan_for_neighbors(rooms, building);
+        let wall = neighbors.get(&0).unwrap().first().unwrap().shared_wall.clone();
+        let point = wall.first().unwrap();
+        self.place_point(*point, TileType::Door);
     }
 
     fn is_too_small(room: Rect) -> bool {
@@ -192,4 +218,95 @@ impl BuildingsGenerator {
         let idx = rooms_table.roll();
         rooms.remove(*idx)
     }
+}
+
+fn horizontal_line(x1: i32, x2: i32, y: i32) -> Vec<Point> {
+    let mut result = Vec::<Point>::new();
+    for x in min(x1, x2)..=max(x1, x2) {
+        result.push(Point { x, y });
+    }
+    result
+}
+
+fn vertical_line(y1: i32, y2: i32, x: i32) -> Vec<Point> {
+    let mut result = Vec::<Point>::new();
+    for y in min(y1, y2)..=max(y1, y2) {
+        result.push(Point { x, y });
+    }
+    result
+}
+
+fn scan_for_neighbors(rooms: &Vec<Rect>, building: Rect) -> HashMap<i32, Vec<NeighBor>> {
+    let mut neighbors = HashMap::<i32, Vec<NeighBor>>::new();
+    for (i1, room1) in rooms.iter().enumerate() {
+        for (i2, room2) in rooms.iter().enumerate() {
+            if room2.x2 == room1.x1 && min(room1.y2, room2.y2) > max(room1.y1, room2.y1) {
+                let shared_wall = vertical_line(
+                    max(room1.y1, room2.y1) + 1,
+                    min(room1.y2, room2.y2) - 1,
+                    room1.x1,
+                );
+                let entry1 = neighbors.entry(i1 as i32).or_insert(Vec::new());
+                entry1.push(NeighBor {
+                    idx: i2 as i32,
+                    shared_wall: shared_wall.clone(),
+                });
+                let entry2 = neighbors.entry(i2 as i32).or_insert(Vec::new());
+                entry2.push(NeighBor {
+                    idx: i1 as i32,
+                    shared_wall: shared_wall,
+                });
+            }
+            if room2.y2 == room1.y1 && min(room1.x2, room2.x2) > max(room1.x1, room2.x1) {
+                let shared_wall = horizontal_line(
+                    max(room1.x1, room2.x1) + 1,
+                    min(room1.x2, room2.x2) - 1,
+                    room1.y1,
+                );
+                let entry1 = neighbors.entry(i1 as i32).or_insert(Vec::new());
+                entry1.push(NeighBor {
+                    idx: i2 as i32,
+                    shared_wall: shared_wall.clone(),
+                });
+                let entry2 = neighbors.entry(i2 as i32).or_insert(Vec::new());
+                entry2.push(NeighBor {
+                    idx: i1 as i32,
+                    shared_wall: shared_wall,
+                });
+            }
+        }
+        if room1.x1 == building.x1
+            || room1.x2 == building.x2
+            || room1.y1 == building.y1
+            || room1.y2 == building.y2
+        {
+            let mut shared_walls = Vec::<Point>::new();
+            if room1.x1 == building.x1 {
+                shared_walls.append(&mut vertical_line(room1.y1 + 1, room1.y2 - 1, room1.x1));
+            }
+            if room1.x2 == building.x2 {
+                shared_walls.append(&mut vertical_line(room1.y1 + 1, room1.y2 - 1, room1.x2));
+            }
+
+            if room1.y1 == building.y1 {
+                shared_walls.append(&mut horizontal_line(room1.x1 + 1, room1.x2 - 1, room1.y1));
+            }
+            if room1.y2 == building.y2 {
+                shared_walls.append(&mut horizontal_line(room1.x1 + 1, room1.x2 - 1, room1.y2));
+            }
+
+            let entry1 = neighbors.entry(i1 as i32).or_insert(Vec::new());
+            entry1.push(NeighBor {
+                idx: EXT_IDX,
+                shared_wall: shared_walls.clone(),
+            });
+            let entry_ext = neighbors.entry(EXT_IDX).or_insert(Vec::new());
+            entry_ext.push(NeighBor {
+                idx: i1 as i32,
+                shared_wall: shared_walls,
+            });
+        }
+    }
+
+    neighbors
 }
