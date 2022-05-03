@@ -80,7 +80,7 @@ pub fn draw_map(map: &GameMap, poi: &PointsOfInterest, ctx: &mut BTerm) {
                     fg = RGB::from_f32(0., 1.0, 0.);
                 }
                 TileType::Door => {
-                    glyph = to_cp437('+');
+                    glyph = to_cp437('≡');
                     fg = RGB::from_f32(0., 1.0, 0.);
                 }
                 TileType::Window => {
