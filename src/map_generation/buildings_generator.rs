@@ -2,13 +2,14 @@ use crate::{game_map::*, map::Map, random_table::RandomTable};
 use bracket_lib::prelude::*;
 use std::{
     cmp::{max, min},
-    collections::HashMap,
+    collections::{HashMap, HashSet},
 };
 
 use super::MapGenerator;
 
 const EXT_IDX: i32 = -1;
 
+#[derive(Clone)]
 struct NeighBor {
     idx: i32,
     shared_wall: Vec<Point>,
@@ -145,10 +146,52 @@ impl BuildingsGenerator {
     }
 
     fn connect_rooms(&mut self, rooms: &Vec<Rect>, building: Rect) {
-        let neighbors = scan_for_neighbors(rooms, building);
-        let wall = neighbors.get(&0).unwrap().first().unwrap().shared_wall.clone();
-        let point = wall.first().unwrap();
-        self.place_point(*point, TileType::Door);
+        let neighbor_graph = scan_for_neighbors(rooms, building);
+        let mut connected = HashSet::<i32>::new();
+        let mut to_connect = HashSet::<i32>::new();
+        connected.insert(EXT_IDX);
+
+        let ext_neighbors: HashSet<i32> = neighbor_graph
+            .get(&EXT_IDX)
+            .unwrap()
+            .iter()
+            .map(|n| n.idx)
+            .collect();
+        to_connect = to_connect.union(&ext_neighbors).map(|i| *i).collect();
+
+        while !to_connect.is_empty() {
+            let mut to_connect_vec: Vec<i32> = to_connect.iter().map(|i| *i).collect();
+            let to_connect_idx = to_connect_vec.remove(self.rng.range(0, to_connect_vec.len()));
+
+            let neighbors = neighbor_graph.get(&to_connect_idx).unwrap();
+            let connected_neightbors: Vec<NeighBor> = neighbors
+                .iter()
+                .filter(|n| connected.contains(&n.idx))
+                .map(|n| n.clone())
+                .collect();
+
+            let disconnected_neightbors: Vec<NeighBor> = neighbors
+                .iter()
+                .filter(|n| !connected.contains(&n.idx))
+                .map(|n| n.clone())
+                .collect();
+
+            for disconnected in disconnected_neightbors.iter() {
+                if !connected.contains(&disconnected.idx) {
+                    to_connect.insert(disconnected.idx);
+                }
+            }
+
+            let connection = connected_neightbors
+                .get(self.rng.range(0, connected_neightbors.len()))
+                .unwrap();
+
+            let connection_wall = connection.shared_wall.get(self.rng.range(0, connection.shared_wall.len())).unwrap();
+            self.place_point(*connection_wall, TileType::Door);
+
+            to_connect.remove(&to_connect_idx);
+            connected.insert(to_connect_idx);
+        }
     }
 
     fn is_too_small(room: Rect) -> bool {
@@ -246,6 +289,7 @@ fn scan_for_neighbors(rooms: &Vec<Rect>, building: Rect) -> HashMap<i32, Vec<Nei
                     min(room1.y2, room2.y2) - 1,
                     room1.x1,
                 );
+
                 let entry1 = neighbors.entry(i1 as i32).or_insert(Vec::new());
                 entry1.push(NeighBor {
                     idx: i2 as i32,
@@ -263,6 +307,7 @@ fn scan_for_neighbors(rooms: &Vec<Rect>, building: Rect) -> HashMap<i32, Vec<Nei
                     min(room1.x2, room2.x2) - 1,
                     room1.y1,
                 );
+
                 let entry1 = neighbors.entry(i1 as i32).or_insert(Vec::new());
                 entry1.push(NeighBor {
                     idx: i2 as i32,
