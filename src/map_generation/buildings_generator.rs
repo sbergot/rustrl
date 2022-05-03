@@ -1,4 +1,4 @@
-use crate::{game_map::*, map::Map};
+use crate::{game_map::*, map::Map, random_table::RandomTable};
 use bracket_lib::prelude::*;
 use std::{
     cmp::{max, min},
@@ -12,6 +12,7 @@ pub struct BuildingsGenerator {
     pub width: i32,
     pub height: i32,
     max_idx: usize,
+    rng: RandomNumberGenerator,
 }
 
 impl Map for BuildingsGenerator {
@@ -21,20 +22,12 @@ impl Map for BuildingsGenerator {
 }
 
 impl MapGenerator for BuildingsGenerator {
-    fn generate(&mut self) -> (Vec<Rect>, GameMap) {
+    fn generate(&mut self) -> GameMap {
         let mut rooms: Vec<Rect> = Vec::new();
-        const MAX_ROOMS: i32 = 5;
-        const MIN_SIZE: i32 = 12;
-        const MAX_SIZE: i32 = 20;
-
-        let mut rng = RandomNumberGenerator::new();
+        const MAX_ROOMS: i32 = 20;
 
         for _ in 0..MAX_ROOMS {
-            let w = rng.range(MIN_SIZE, MAX_SIZE);
-            let h = rng.range(MIN_SIZE, MAX_SIZE);
-            let x = rng.roll_dice(1, self.width - w - 1) - 1;
-            let y = rng.roll_dice(1, self.height - h - 1) - 1;
-            let new_room = Rect::with_size(x, y, w, h);
+            let new_room = self.roll_room();
             let mut ok = true;
             for other_room in rooms.iter() {
                 if new_room.intersect(other_room) {
@@ -47,6 +40,10 @@ impl MapGenerator for BuildingsGenerator {
             }
         }
 
+        for room in rooms.iter() {
+            self.generate_interior(*room);
+        }
+
         let map = GameMap {
             tiles: self.tiles.clone(),
             revealed_tiles: vec![false; self.max_idx],
@@ -54,23 +51,25 @@ impl MapGenerator for BuildingsGenerator {
             blocked_tiles: vec![false; self.max_idx],
             entities_tiles: vec![Vec::new(); self.max_idx],
             decal_tiles: HashMap::new(),
-            rooms: Vec::new(),
+            rooms: rooms,
             width: self.width,
             height: self.height,
         };
 
-        (rooms, map)
+        map
     }
 }
 
 impl BuildingsGenerator {
     pub fn new(width: i32, height: i32) -> BuildingsGenerator {
         let max_idx = (width * height) as usize;
+        let rng = RandomNumberGenerator::new();
         BuildingsGenerator {
             tiles: vec![TileType::Floor; max_idx],
             width,
             height,
             max_idx,
+            rng,
         }
     }
 
@@ -97,5 +96,100 @@ impl BuildingsGenerator {
                 self.tiles[idx as usize] = tile;
             }
         }
+    }
+
+    fn roll_room(&mut self) -> Rect {
+        const MIN_SIZE: i32 = 24;
+        const MAX_SIZE: i32 = 40;
+
+        let w = self.rng.range(MIN_SIZE, MAX_SIZE);
+        let h = self.rng.range(MIN_SIZE, MAX_SIZE);
+        let x = self.rng.roll_dice(1, self.width - w - 1) - 1;
+        let y = self.rng.roll_dice(1, self.height - h - 1) - 1;
+        let new_room = Rect::with_size(x, y, w, h);
+        new_room
+    }
+
+    fn generate_interior(&mut self, building: Rect) {
+        let (room1, room2) = self.split_room(building);
+        let mut rooms = vec![room1, room2];
+        for _i in 0..3 {
+            let room = self.take_random_room(&mut rooms);
+            if Self::is_too_small(room) {
+                rooms.push(room);
+            } else {
+                let (room1, room2) = self.split_room(room);
+                rooms.push(room1);
+                rooms.push(room2);
+            }
+        }
+    }
+
+    fn is_too_small(room: Rect) -> bool {
+        const MIN_SIZE: i32 = 8;
+        room.x2 - room.x1 < MIN_SIZE || room.y2 - room.y1 < MIN_SIZE
+    }
+
+    fn centered_range(&mut self, min: i32, max: i32) -> i32 {
+        (self.rng.range(min, max) + self.rng.range(min, max)) / 2
+    }
+
+    fn split_room(&mut self, room: Rect) -> (Rect, Rect) {
+        let width = room.width();
+        let height = room.height();
+        let mut new_rng = self.rng.clone();
+        let mut vertical_horizontal_table = RandomTable::<bool>::new(&mut new_rng)
+            .add(true, width * width)
+            .add(false, height * height);
+
+        if *vertical_horizontal_table.roll() {
+            //split vertically
+            let new_x = self.centered_range(room.x1 + 2, room.x2 - 1);
+            self.place_vertical_line(room.y1, room.y2, new_x, TileType::Wall);
+            (
+                Rect {
+                    x1: room.x1,
+                    y1: room.y1,
+                    x2: new_x,
+                    y2: room.y2,
+                },
+                Rect {
+                    x1: new_x,
+                    y1: room.y1,
+                    x2: room.x2,
+                    y2: room.y2,
+                },
+            )
+        } else {
+            //split horizontally
+            let new_y = self.centered_range(room.y1 + 2, room.y2 - 1);
+            self.place_horizontal_line(room.x1, room.x2, new_y, TileType::Wall);
+            (
+                Rect {
+                    x1: room.x1,
+                    y1: room.y1,
+                    x2: room.x2,
+                    y2: new_y,
+                },
+                Rect {
+                    x1: room.x1,
+                    y1: new_y,
+                    x2: room.x2,
+                    y2: room.y2,
+                },
+            )
+        }
+    }
+
+    fn take_random_room(&mut self, rooms: &mut Vec<Rect>) -> Rect {
+        // pick big rooms in priority
+        let mut new_rng = self.rng.clone();
+        let mut rooms_table = RandomTable::<usize>::new(&mut new_rng);
+        for (i, room) in rooms.iter().enumerate() {
+            rooms_table = rooms_table.add(i, room.width() * room.height());
+        }
+
+        let idx = rooms_table.roll();
+        rooms.remove(*idx)
     }
 }

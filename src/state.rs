@@ -126,12 +126,12 @@ pub fn init_state<'a, 'b>(width: i32, height: i32) -> State<'a, 'b> {
 
     let mut generator =
         map_generation::buildings_generator::BuildingsGenerator::new(width, height);
-    let (rooms, map) = generator.generate();
+    let map = generator.generate();
 
-    let room_center = rooms[0].center();
+    let room_center = map.rooms[0].center();
     let player_entity = spawner::player(&mut gs.ecs, room_center);
 
-    for room in rooms.iter().skip(1) {
+    for room in map.rooms.iter().skip(1) {
         spawner::spawn_room(&mut gs.ecs, room);
     }
 

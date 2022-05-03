@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     components::*,
-    entity_containers::{EntityHashMap, EntityVec},
+    entity_containers::{EntityHashMap, EntityVec}, random_table::RandomTable,
 };
 use bracket_lib::prelude::*;
 use specs::{saveload::*, *};
@@ -65,8 +65,13 @@ fn monster<S: ToString>(ecs: &mut World, pos: Point, glyph: FontCharType, name: 
         .build();
 }
 
-pub fn spawn_room(ecs: &mut World, room: &Rect) {
-    let spawn_table = room_table();
+pub fn spawn_room(mut ecs: &mut World, room: &Rect) {
+    let mut rng = {
+        ecs.write_resource::<RandomNumberGenerator>().clone()
+    };
+    
+
+    let mut spawn_table = room_table(&mut rng);
     let mut spawn_points: HashMap<Point, ()> = HashMap::new();
 
     // Scope to keep the borrow checker happy
@@ -93,62 +98,16 @@ pub fn spawn_room(ecs: &mut World, room: &Rect) {
 
     {
         for (spawn_pos, _u) in spawn_points.iter() {
-            spawn_table.roll(ecs, *spawn_pos);
+            let spawner = spawn_table.roll();
+            spawner(&mut ecs, *spawn_pos);
         }
     }
 }
 
-pub struct RandomEntry {
-    spawn_fn: fn(ecs: &mut World, pos: Point),
-    weight: i32,
-}
+pub type Spawner = fn(ecs: &mut World, pos: Point);
 
-pub struct RandomTable {
-    entries: Vec<RandomEntry>,
-    total_weight: i32,
-}
-
-impl RandomTable {
-    pub fn new() -> RandomTable {
-        RandomTable {
-            entries: Vec::new(),
-            total_weight: 0,
-        }
-    }
-
-    pub fn add(mut self, spawn_fn: fn(ecs: &mut World, pos: Point), weight: i32) -> RandomTable {
-        self.total_weight += weight;
-        self.entries.push(RandomEntry { spawn_fn, weight });
-        self
-    }
-
-    pub fn roll(&self, ecs: &mut World, pos: Point) {
-        if self.total_weight == 0 {
-            return;
-        }
-
-        let mut roll;
-        {
-            let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-            roll = rng.roll_dice(1, self.total_weight) - 1;
-        }
-
-        let mut index: usize = 0;
-        while roll > 0 {
-            let entry = &self.entries[index];
-            if roll < entry.weight {
-                let spawner = entry.spawn_fn;
-                spawner(ecs, pos);
-            }
-
-            roll -= entry.weight;
-            index += 1;
-        }
-    }
-}
-
-fn room_table() -> RandomTable {
-    RandomTable::new()
+fn room_table(rng: &mut RandomNumberGenerator) -> RandomTable<Spawner> {
+    RandomTable::<Spawner>::new(rng)
         .add(goblin, 20)
         .add(orc, 5)
         .add(health_potion, 7)

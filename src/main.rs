@@ -14,6 +14,7 @@ mod scenes;
 mod spawner;
 mod state;
 mod systems;
+mod random_table;
 
 use bracket_lib::prelude::{main_loop, BError, BTermBuilder};
 use constants::*;

@@ -21,7 +21,7 @@ impl Map for RoomsCorridorsGenerator {
 }
 
 impl MapGenerator for RoomsCorridorsGenerator {
-    fn generate(&mut self) -> (Vec<Rect>, GameMap) {
+    fn generate(&mut self) -> GameMap {
         let mut rooms: Vec<Rect> = Vec::new();
         const MAX_ROOMS: i32 = 40;
         const MIN_SIZE: i32 = 6;
@@ -69,12 +69,12 @@ impl MapGenerator for RoomsCorridorsGenerator {
             blocked_tiles: vec![false; self.max_idx],
             entities_tiles: vec![Vec::new(); self.max_idx],
             decal_tiles: HashMap::new(),
-            rooms: Vec::new(),
+            rooms: rooms,
             width: self.width,
             height: self.height,
         };
 
-        (rooms, map)
+        map
     }
 }
 
