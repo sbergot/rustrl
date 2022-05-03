@@ -150,9 +150,11 @@ impl BuildingsGenerator {
 
         // randomly walk the neighbor graph to ensure connectivity
         self.ensure_random_connectivity(&neighbor_graph);
-
         self.add_random_doors(&neighbor_graph);
+        self.add_random_windows(neighbor_graph);
+    }
 
+    fn add_random_windows(&mut self, neighbor_graph: HashMap<i32, Vec<NeighBor>>) {
         let ext_neighbors = neighbor_graph.get(&EXT_IDX).unwrap();
         for _i in 0..5 {
             let connection = ext_neighbors.get(self.rng.range(0, ext_neighbors.len())).unwrap();
