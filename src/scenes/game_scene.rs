@@ -1,7 +1,7 @@
 use bracket_lib::prelude::*;
 
 use crate::{
-    constants::{MAPHEIGHT, MAPWIDTH},
+    constants::{MAP_HEIGHT, MAP_WIDTH},
     scenes::{Scene, SceneSignal},
     state::{init_state, State},
 };
@@ -18,12 +18,12 @@ impl<'a, 'b> Scene for GameScene<'a, 'b> {
 
 impl<'a, 'b> GameScene<'a, 'b> {
     pub fn new_game() -> GameScene<'a, 'b> {
-        let state = init_state(MAPWIDTH, MAPHEIGHT);
+        let state = init_state(MAP_WIDTH, MAP_HEIGHT);
         GameScene { state: state }
     }
 
     pub fn load_game() -> GameScene<'a, 'b> {
-        let mut state = init_state(MAPWIDTH, MAPHEIGHT);
+        let mut state = init_state(MAP_WIDTH, MAP_HEIGHT);
         state.load_game();
         GameScene { state: state }
     }

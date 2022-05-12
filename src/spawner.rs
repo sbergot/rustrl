@@ -19,7 +19,7 @@ pub fn player(ecs: &mut World, pos: Point) -> Entity {
             render_order: 0,
         })
         .with(Player {})
-        .with(Viewshed::new(8))
+        .with(Viewshed::new(20))
         .with(Name {
             name: "Player".to_string(),
         })

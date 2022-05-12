@@ -1,7 +1,7 @@
 use bracket_lib::prelude::*;
 
 use crate::{
-    constants::{MAPHEIGHT, MAPWIDTH},
+    constants::{MAP_HEIGHT, MAP_WIDTH},
     game_display::draw_map,
     game_map::GameMap,
     input::{map_look_commands, Command},
@@ -48,12 +48,12 @@ impl MapGenTestScene {
     fn gen_map(gen_type: MapGenType) -> GameMap {
         let mut map = match gen_type {
             MapGenType::Rooms => {
-                let mut generator = RoomsCorridorsGenerator::new(MAPWIDTH, MAPHEIGHT);
+                let mut generator = RoomsCorridorsGenerator::new(MAP_WIDTH, MAP_HEIGHT);
                 let map = generator.generate();
                 map
             }
             MapGenType::Buildings => {
-                let mut generator = BuildingsGenerator::new(MAPWIDTH, MAPHEIGHT);
+                let mut generator = BuildingsGenerator::new(MAP_WIDTH, MAP_HEIGHT);
                 let map = generator.generate();
                 map
             }

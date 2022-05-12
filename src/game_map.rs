@@ -44,7 +44,7 @@ pub struct GameMap {
 
 impl BaseMap for GameMap {
     fn is_opaque(&self, idx: usize) -> bool {
-        self.tiles[idx] == TileType::Wall
+        self.tiles[idx] == TileType::Wall || self.tiles[idx] == TileType::Door
     }
 
     fn get_available_exits(&self, idx: usize) -> SmallVec<[(usize, f32); 10]> {
@@ -119,7 +119,7 @@ impl GameMap {
 
     pub fn populate_blocked(&mut self) {
         for (i, tile) in self.tiles.iter_mut().enumerate() {
-            self.blocked_tiles[i] = *tile == TileType::Wall;
+            self.blocked_tiles[i] = *tile == TileType::Wall || *tile == TileType::Window;
         }
     }
 

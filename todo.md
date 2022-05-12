@@ -5,8 +5,7 @@ spot the enemy before you are spotted
 -> explore safely
 -> combat is deadly
 
-- map generation
-    - buildings + door + window
+- animations
 - lights
 - 3d map
 - energy system for dynamic turns
